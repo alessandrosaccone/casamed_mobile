@@ -1,0 +1,21 @@
+-- Database: CasaMed
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,          -- ID autoincrementante
+    email VARCHAR(255) UNIQUE NOT NULL,
+    pass VARCHAR(255) NOT NULL,
+    first_name VARCHAR(255),       -- Nome
+    last_name VARCHAR(255),        -- Cognome
+    birth_date DATE                -- Data di nascita
+);
+
+--Create user with role 0 (patient)
+CREATE TABLE users_type_0 (
+    CONSTRAINT users_type_0_pkey PRIMARY KEY (id)
+) INHERITS (users);  -- Eredita da users
+
+--Create user with role 1 (doctors)
+CREATE TABLE users_type_1 (
+    CONSTRAINT users_type_1_pkey PRIMARY KEY (id),
+    other_field_1 VARCHAR(255),    -- Campo specifico per il ruolo 1
+    other_field_2 VARCHAR(255)      -- Un altro campo specifico per il ruolo 1
+) INHERITS (users);  -- Eredita da users
