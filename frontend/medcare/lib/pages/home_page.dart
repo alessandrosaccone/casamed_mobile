@@ -45,7 +45,7 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Text(message, style: const TextStyle(color: Colors.red)),
+            //Text(message, style: const TextStyle(color: Colors.red)),
             ElevatedButton(
               onPressed: navigateToRegister,
               child: const Text('Register'),

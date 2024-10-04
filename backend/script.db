@@ -19,3 +19,10 @@ CREATE TABLE users_type_1 (
     other_field_1 VARCHAR(255),    -- Campo specifico per il ruolo 1
     other_field_2 VARCHAR(255)      -- Un altro campo specifico per il ruolo 1
 ) INHERITS (users);  -- Eredita da users
+
+ALTER TABLE users
+ADD COLUMN address VARCHAR(255),
+ADD COLUMN vat_number VARCHAR(20),
+ADD COLUMN professional_insurance_number VARCHAR(20),
+ADD COLUMN iban VARCHAR(34),
+ADD COLUMN professional_association_registration VARCHAR(50);
