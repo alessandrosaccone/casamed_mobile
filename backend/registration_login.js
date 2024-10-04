@@ -1,8 +1,11 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const pool = require('./db'); // Import the database connection from db.js
 const bcrypt = require('bcrypt'); // For password hashing
 const app = express();
+
+const SECRET_KEY = 'your_secret_key'; /*SECURITY LEAK*/
 
 // Registration (Sign Up)
 app.post('/register', async (req, res) => {
@@ -73,8 +76,11 @@ app.post('/login', async (req, res) => {
       const validPassword = await bcrypt.compare(pass, user.pass);
 
       if (validPassword) {
+        // Create a token with user id, email, and any other necessary information
+        const token = jwt.sign({ id: user.id, email: user.email }, SECRET_KEY, { expiresIn: '1h' });
+
         // Correct password, login successful
-        res.json({ success: true, message: 'Login successful.', userId: user.id });
+        res.json({ success: true, message: 'Login successful.', userId: user.id, token }); // Return the token
         console.log("Login successful");
       } else {
         // Incorrect password
@@ -89,5 +95,6 @@ app.post('/login', async (req, res) => {
     res.status(500).json({ success: false, message: 'Error during login.' });
   }
 });
+
 
 module.exports = app;
