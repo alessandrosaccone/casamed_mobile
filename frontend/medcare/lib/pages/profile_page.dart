@@ -5,12 +5,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfilePage extends StatefulWidget {
   final int userId;
-  final String token; // Aggiungi questo campo
+  final String token;
 
   const ProfilePage({
     Key? key,
     required this.userId,
-    required this.token, // Assicurati che il token sia richiesto
+    required this.token,
   }) : super(key: key);
 
   @override
@@ -30,9 +30,8 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> fetchUserProfile() async {
-    // Usa il token passato dalla pagina di login
     String token = widget.token;
-    int userId = widget.userId; // Usa l'ID utente passato dalla pagina di login
+    int userId = widget.userId;
 
     if (token.isNotEmpty) {
       try {
@@ -64,12 +63,49 @@ class _ProfilePageState extends State<ProfilePage> {
           children: [
             Text('User ID: ${userProfile!['userData']['id']}'),
             Text('Email: ${userProfile!['userData']['email']}'),
-            Text('First Name: ${userProfile!['userData']['first_name'] ?? 'N/A'}'),
-            Text('Last Name: ${userProfile!['userData']['last_name'] ?? 'N/A'}'),
-            // Mostra altri dati dell'utente se necessario
+            Text('First Name: ${userProfile!['userData']['first_name'] ??
+                'N/A'}'),
+            Text(
+                'Last Name: ${userProfile!['userData']['last_name'] ?? 'N/A'}'),
+
+            // Visualizza i dati aggiuntivi se non sono nulli
+            ..._buildAdditionalFields(userProfile!['userData']),
           ],
         ),
       ),
     );
+  }
+
+// Helper method to build additional fields if they are not null
+  List<Widget> _buildAdditionalFields(Map<String, dynamic> userData) {
+    List<Widget> fields = [];
+
+    if (userData['birth_date'] != null) {
+      fields.add(Text('Birth Date: ${userData['birth_date']}'));
+    }
+
+    if (userData['address'] != null) {
+      fields.add(Text('Address: ${userData['address']}'));
+    }
+
+    if (userData['vat_number'] != null) {
+      fields.add(Text('VAT Number: ${userData['vat_number']}'));
+    }
+
+    if (userData['professional_insurance_number'] != null) {
+      fields.add(Text(
+          'Professional Insurance Number: ${userData['professional_insurance_number']}'));
+    }
+
+    if (userData['iban'] != null) {
+      fields.add(Text('IBAN: ${userData['iban']}'));
+    }
+
+    if (userData['professional_association_registration'] != null) {
+      fields.add(Text(
+          'Professional Association Registration: ${userData['professional_association_registration']}'));
+    }
+
+    return fields; // Returns the list of non-null widgets
   }
 }
