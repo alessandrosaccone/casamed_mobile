@@ -17,7 +17,7 @@ class ApiService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
-      throw Exception('Failed to register user: ${response.body}');
+      throw Exception('Failed to register user: ${response.statusCode} - ${response.body}');
     }
   }
 
@@ -31,7 +31,23 @@ class ApiService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
-      throw Exception('Failed to login user: ${response.body}');
+      throw Exception('Failed to login user: ${response.statusCode} - ${response.body}');
+    }
+  }
+
+  Future<Map<String, dynamic>> getUserProfile(int userId, String token) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/profile/$userId'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to fetch user profile: ${response.statusCode} - ${response.body}');
     }
   }
 
@@ -42,7 +58,7 @@ class ApiService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
-      throw Exception('Failed to fetch counter: ${response.body}');
+      throw Exception('Failed to fetch counter: ${response.statusCode} - ${response.body}');
     }
   }
 
@@ -53,7 +69,7 @@ class ApiService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     } else {
-      throw Exception('Failed to increment counter: ${response.body}');
+      throw Exception('Failed to increment counter: ${response.statusCode} - ${response.body}');
     }
   }
 }
