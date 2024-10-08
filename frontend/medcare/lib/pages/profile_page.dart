@@ -1,6 +1,6 @@
-// lib/pages/profile_page.dart
 import 'package:flutter/material.dart';
 import '../services/api_services.dart';
+import 'calendar_page.dart'; // Import della pagina del calendario
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -21,6 +21,7 @@ class _ProfilePageState extends State<ProfilePage> {
   late ApiService apiService;
   Map<String, dynamic>? userProfile;
   String message = '';
+  bool isDoctor = false; // Variabile per determinare se l'utente è un medico
 
   @override
   void initState() {
@@ -39,6 +40,10 @@ class _ProfilePageState extends State<ProfilePage> {
         setState(() {
           userProfile = profileData;
         });
+
+        // Controlla se l'utente è un medico in un contesto separato
+        await checkIfUserIsDoctor(profileData['userData']['id'], token);
+
       } catch (e) {
         setState(() {
           message = 'Failed to load user profile: $e';
@@ -48,6 +53,16 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() {
         message = 'No token found, please login again.';
       });
+    }
+  }
+
+  // Funzione per controllare se l'utente è un medico
+  Future<void> checkIfUserIsDoctor(int userId, String token) async {
+    try {
+      isDoctor = await apiService.isUserDoctor(userId, token);
+      setState(() {}); // Notifica Flutter che lo stato è cambiato
+    } catch (e) {
+      print('Failed to check if user is a doctor: $e');
     }
   }
 
@@ -63,20 +78,37 @@ class _ProfilePageState extends State<ProfilePage> {
           children: [
             Text('User ID: ${userProfile!['userData']['id']}'),
             Text('Email: ${userProfile!['userData']['email']}'),
-            Text('First Name: ${userProfile!['userData']['first_name'] ??
-                'N/A'}'),
-            Text(
-                'Last Name: ${userProfile!['userData']['last_name'] ?? 'N/A'}'),
+            Text('First Name: ${userProfile!['userData']['first_name'] ?? 'N/A'}'),
+            Text('Last Name: ${userProfile!['userData']['last_name'] ?? 'N/A'}'),
 
             // Visualizza i dati aggiuntivi se non sono nulli
             ..._buildAdditionalFields(userProfile!['userData']),
+
+            const SizedBox(height: 20), // Spazio tra i contenuti
+
+            // Controlla se l'utente è un medico (ruolo 1) prima di mostrare il bottone
+            if (isDoctor) // Verifica se l'utente è un medico
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CalendarPage(
+                        userId: widget.userId,   // Pass the userId here
+                        token: widget.token,
+                      ),
+                    ),
+                  );
+                },
+                child: Text('Vai al Calendario'),
+              ),
           ],
         ),
       ),
     );
   }
 
-// Helper method to build additional fields if they are not null
+  // Helper method to build additional fields if they are not null
   List<Widget> _buildAdditionalFields(Map<String, dynamic> userData) {
     List<Widget> fields = [];
 
@@ -93,8 +125,7 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     if (userData['professional_insurance_number'] != null) {
-      fields.add(Text(
-          'Professional Insurance Number: ${userData['professional_insurance_number']}'));
+      fields.add(Text('Professional Insurance Number: ${userData['professional_insurance_number']}'));
     }
 
     if (userData['iban'] != null) {
@@ -102,8 +133,7 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     if (userData['professional_association_registration'] != null) {
-      fields.add(Text(
-          'Professional Association Registration: ${userData['professional_association_registration']}'));
+      fields.add(Text('Professional Association Registration: ${userData['professional_association_registration']}'));
     }
 
     return fields; // Returns the list of non-null widgets

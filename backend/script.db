@@ -26,3 +26,13 @@ ADD COLUMN vat_number VARCHAR(20),
 ADD COLUMN professional_insurance_number VARCHAR(20),
 ADD COLUMN iban VARCHAR(34),
 ADD COLUMN professional_association_registration VARCHAR(50);
+
+CREATE TABLE availability (
+    id SERIAL PRIMARY KEY,           -- ID univoco per ogni disponibilità
+    user_id INT NOT NULL,            -- Collegamento all'ID dell'utente (medico)
+    available_date DATE NOT NULL    -- Data di disponibilità
+    
+);
+
+
+

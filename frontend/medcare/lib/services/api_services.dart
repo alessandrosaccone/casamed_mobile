@@ -72,4 +72,21 @@ class ApiService {
       throw Exception('Failed to increment counter: ${response.statusCode} - ${response.body}');
     }
   }
+
+  // Metodo per verificare se l'utente è un medico
+  Future<bool> isUserDoctor(int userId, String token) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/user/$userId/role'), // Assicurati che l'endpoint sia corretto
+      headers: {
+        'Authorization': 'Bearer $token', // Usa il token di autorizzazione
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['isDoctor'] ?? false; // Restituisci true se è un medico, altrimenti false
+    } else {
+      throw Exception('Failed to check user role: ${response.statusCode} - ${response.body}');
+    }
+  }
 }

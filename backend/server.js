@@ -2,18 +2,24 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 const port = 3000;
-// Import the registration and login routes from registration_login.js
-const registrationLoginRoutes = require('./registration_login');
-const profileRoutes = require('./profile'); // Import the profile routes
 
-// Use the routes
+const registrationLoginRoutes = require('./registration_login');
+const profileRoutes = require('./profile'); // Importa le route del profilo
+const calendarRoutes = require('./calendar'); // Importa le route del calendario
+const roleRoutes = require('./role'); // Importa le route per il controllo del ruolo
+
 // Middleware
 app.use(express.json());
 app.use(cors());
-app.use('/', registrationLoginRoutes);  // Now the routes from registration_login.js will be available in your app
-app.use('/profile', profileRoutes);
 
-// Start the server
+// Usa le route
+app.use('/', registrationLoginRoutes);  // Route per login/registrazione
+app.use('/profile', profileRoutes);     // Route per il profilo
+app.use('/calendar', calendarRoutes);   // Route per il calendario
+app.use('/', roleRoutes); // Usa le route
+
+
+// Avvia il server
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
