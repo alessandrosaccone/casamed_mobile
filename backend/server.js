@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const { check, validationResult } = require('express-validator'); // Importa le funzioni di express-validator
+const axios = require('axios'); // Import axios for API requests
 const app = express();
 const port = 3000;
 // Import the registration and login routes from registration_login.js
