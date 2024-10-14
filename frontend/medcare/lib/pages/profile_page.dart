@@ -69,7 +69,7 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(title: const Text('Profilo')),
       body: Center(
         child: userProfile == null
             ? Text(message)
@@ -78,8 +78,8 @@ class _ProfilePageState extends State<ProfilePage> {
           children: [
             Text('User ID: ${userProfile!['userData']['id']}'),
             Text('Email: ${userProfile!['userData']['email']}'),
-            Text('First Name: ${userProfile!['userData']['first_name'] ?? 'N/A'}'),
-            Text('Last Name: ${userProfile!['userData']['last_name'] ?? 'N/A'}'),
+            Text('Nome: ${userProfile!['userData']['first_name'] ?? 'N/A'}'),
+            Text('Cognome: ${userProfile!['userData']['last_name'] ?? 'N/A'}'),
 
             // Visualizza i dati aggiuntivi se non sono nulli
             ..._buildAdditionalFields(userProfile!['userData']),
@@ -113,19 +113,19 @@ class _ProfilePageState extends State<ProfilePage> {
     List<Widget> fields = [];
 
     if (userData['birth_date'] != null) {
-      fields.add(Text('Birth Date: ${userData['birth_date']}'));
+      fields.add(Text('Data di nascita: ${userData['birth_date']}'));
     }
 
     if (userData['address'] != null) {
-      fields.add(Text('Address: ${userData['address']}'));
+      fields.add(Text('Indirizzo: ${userData['address']}'));
     }
 
     if (userData['vat_number'] != null) {
-      fields.add(Text('VAT Number: ${userData['vat_number']}'));
+      fields.add(Text('Partita IVA (VAT numer): ${userData['vat_number']}'));
     }
 
     if (userData['professional_insurance_number'] != null) {
-      fields.add(Text('Professional Insurance Number: ${userData['professional_insurance_number']}'));
+      fields.add(Text("Numero d'assicurazione professionale: ${userData['professional_insurance_number']}"));
     }
 
     if (userData['iban'] != null) {
@@ -133,7 +133,7 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     if (userData['professional_association_registration'] != null) {
-      fields.add(Text('Professional Association Registration: ${userData['professional_association_registration']}'));
+      fields.add(Text("Identificativo dell'iscrizione all'ordine professionale: ${userData['professional_association_registration']}"));
     }
 
     return fields; // Returns the list of non-null widgets

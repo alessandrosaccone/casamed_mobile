@@ -48,7 +48,7 @@ class _HomePageState extends State<HomePage> {
             //Text(message, style: const TextStyle(color: Colors.red)),
             ElevatedButton(
               onPressed: navigateToRegister,
-              child: const Text('Register'),
+              child: const Text('Registrati'),
             ),
             ElevatedButton(
               onPressed: navigateToLogin,

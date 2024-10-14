@@ -25,10 +25,12 @@ class _RegisterPageState extends State<RegisterPage> {
   final _registrationController = TextEditingController();
 
   String message = '';
-  String? selectedRole; // Variable to hold the selected role
-  int? roleValue; // Will hold 0 or 1 based on the selection
-
+  String? selectedRole;
+  int? roleValue;
   late ApiService apiService;
+
+  bool _termsAccepted = false; // Variable for accepting terms
+  bool _termsRead = false; // Variable to track if the user has read the terms
 
   @override
   void initState() {
@@ -37,17 +39,23 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   void register() async {
+    if (!_termsAccepted) {
+      setState(() {
+        message = 'You must accept the terms and conditions.';
+      });
+      return;
+    }
+
     try {
       final requestBody = {
         "email": _emailController.text,
         "pass": _passwordController.text,
-        "role": roleValue, // Send the mapped role value (0 or 1)
+        "role": roleValue,
         "first_name": _firstNameController.text,
         "last_name": _lastNameController.text,
         "birth_date": _birthDateController.text,
       };
 
-      // Add the extra fields if the user is a Healthcare Expert (role 1)
       if (roleValue == 1) {
         requestBody.addAll({
           "address": _addressController.text,
@@ -60,7 +68,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
       final response = await apiService.registerUser(requestBody);
       setState(() {
-        message = 'Registration successful: ${response['message']}';
+        message = 'Registrazione riuscita: ${response['message']}';
       });
 
       // Login automatically after successful registration
@@ -82,19 +90,16 @@ class _RegisterPageState extends State<RegisterPage> {
 
       final loginResponse = await apiService.loginUser(loginData);
 
-      // Check if login was successful
       if (loginResponse['success']) {
-        // Save the token to SharedPreferences
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', loginResponse['token']);
 
-        // Navigate to the profile page
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (context) => ProfilePage(
-              userId: loginResponse['userId'], // Pass userId from login response
-              token: loginResponse['token'],     // Pass the token
+              userId: loginResponse['userId'],
+              token: loginResponse['token'],
             ),
           ),
         );
@@ -110,13 +115,46 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
+  void _showTermsAndConditions() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Termini e Condizioni'),
+          content: SizedBox(
+            height: 300.0,
+            child: SingleChildScrollView(
+              child: Column(
+                children: const [
+                  Text('''Lorem ipsum dolor sit amet, consectetur adipiscing elit. ...'''),
+                  // Add more placeholder text to simulate long terms and conditions
+                ],
+              ),
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Ho capito'),
+              onPressed: () {
+                setState(() {
+                  _termsRead = true;
+                });
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Register')),
+      appBar: AppBar(title: const Text('Registrazione')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView( // Use a scrollable view in case there are many fields
+        child: SingleChildScrollView(
           child: Column(
             children: [
               TextField(
@@ -130,22 +168,20 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
               TextField(
                 controller: _firstNameController,
-                decoration: const InputDecoration(labelText: 'First Name'),
+                decoration: const InputDecoration(labelText: 'Nome'),
               ),
               TextField(
                 controller: _lastNameController,
-                decoration: const InputDecoration(labelText: 'Last Name'),
+                decoration: const InputDecoration(labelText: 'Cognome'),
               ),
               TextField(
                 controller: _birthDateController,
-                decoration: const InputDecoration(labelText: 'Birth Date (YYYY-MM-DD)'),
+                decoration: const InputDecoration(labelText: 'Data di nascita (YYYY-MM-DD)'),
               ),
-              // Dropdown for role selection
               DropdownButton<String>(
                 value: selectedRole,
-                hint: const Text('Select Role'),
-                items: <String>['Patient', 'Healthcare Expert']
-                    .map((String value) {
+                hint: const Text('Seleziona il tuo ruolo'),
+                items: <String>['Paziente', 'Medico'].map((String value) {
                   return DropdownMenuItem<String>(
                     value: value,
                     child: Text(value),
@@ -154,24 +190,22 @@ class _RegisterPageState extends State<RegisterPage> {
                 onChanged: (newValue) {
                   setState(() {
                     selectedRole = newValue;
-                    roleValue = (newValue == 'Patient') ? 0 : 1; // Map to 0 or 1
+                    roleValue = (newValue == 'Paziente') ? 0 : 1;
                   });
                 },
               ),
-
-              // Show extra fields if "Healthcare Expert" is selected
               if (roleValue == 1) ...[
                 TextField(
                   controller: _addressController,
-                  decoration: const InputDecoration(labelText: 'Address'),
+                  decoration: const InputDecoration(labelText: 'Indirizzo'),
                 ),
                 TextField(
                   controller: _vatNumberController,
-                  decoration: const InputDecoration(labelText: 'VAT Number'),
+                  decoration: const InputDecoration(labelText: 'Partita IVA'),
                 ),
                 TextField(
                   controller: _insuranceNumberController,
-                  decoration: const InputDecoration(labelText: 'Professional Insurance Number'),
+                  decoration: const InputDecoration(labelText: 'Numero Assicurazione'),
                 ),
                 TextField(
                   controller: _ibanController,
@@ -179,13 +213,31 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 TextField(
                   controller: _registrationController,
-                  decoration: const InputDecoration(labelText: 'Professional Association Registration'),
+                  decoration: const InputDecoration(labelText: 'Iscrizione all\'Ordine'),
                 ),
               ],
-
+              Row(
+                children: [
+                  Checkbox(
+                    value: _termsAccepted,
+                    onChanged: _termsRead ? (bool? value) {
+                      setState(() {
+                        _termsAccepted = value!;
+                      });
+                    } : null,
+                  ),
+                  GestureDetector(
+                    onTap: _showTermsAndConditions,
+                    child: const Text(
+                      'Accetta Termini e Condizioni',
+                      style: TextStyle(decoration: TextDecoration.underline),
+                    ),
+                  ),
+                ],
+              ),
               ElevatedButton(
-                onPressed: selectedRole != null ? register : null, // Disable if role not selected
-                child: const Text('Register'),
+                onPressed: selectedRole != null && _termsAccepted ? register : null,
+                child: const Text('Registrati'),
               ),
               Text(message, style: const TextStyle(color: Colors.red)),
             ],

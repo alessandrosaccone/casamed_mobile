@@ -49,7 +49,7 @@ class _LoginPageState extends State<LoginPage> {
         );
       } else {
         setState(() {
-          message = 'Login failed: ${response['message']}';
+          message = 'Login non andato a buon fine: ${response['message']}';
         });
       }
     } catch (e) {
