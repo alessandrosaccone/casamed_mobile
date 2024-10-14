@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_services.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Import shared_preferences
+import 'profile_page.dart'; // Import the ProfilePage
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -60,9 +62,50 @@ class _RegisterPageState extends State<RegisterPage> {
       setState(() {
         message = 'Registration successful: ${response['message']}';
       });
+
+      // Login automatically after successful registration
+      await loginAfterRegistration();
+
     } catch (e) {
       setState(() {
         message = 'Error: $e';
+      });
+    }
+  }
+
+  Future<void> loginAfterRegistration() async {
+    try {
+      final loginData = {
+        "email": _emailController.text,
+        "pass": _passwordController.text,
+      };
+
+      final loginResponse = await apiService.loginUser(loginData);
+
+      // Check if login was successful
+      if (loginResponse['success']) {
+        // Save the token to SharedPreferences
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('token', loginResponse['token']);
+
+        // Navigate to the profile page
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProfilePage(
+              userId: loginResponse['userId'], // Pass userId from login response
+              token: loginResponse['token'],     // Pass the token
+            ),
+          ),
+        );
+      } else {
+        setState(() {
+          message = 'Login failed after registration: ${loginResponse['message']}';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        message = 'Error during automatic login: $e';
       });
     }
   }

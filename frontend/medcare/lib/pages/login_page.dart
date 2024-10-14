@@ -1,6 +1,8 @@
 // lib/pages/login_page.dart
 import 'package:flutter/material.dart';
 import '../services/api_services.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Import shared_preferences
+import 'profile_page.dart'; // Import the ProfilePage
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -19,7 +21,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
-    apiService = ApiService(baseUrl: 'http://10.0.2.2:3000'); // Replace with your API base URL
+    apiService = ApiService(baseUrl: 'http://10.0.2.2:3000'); // Sostituisci con l'URL della tua API
   }
 
   void login() async {
@@ -28,9 +30,28 @@ class _LoginPageState extends State<LoginPage> {
         "email": _emailController.text,
         "pass": _passwordController.text,
       });
-      setState(() {
-        message = 'Login successful: ${response['message']}';
-      });
+
+      // Controlla se il login ha avuto successo
+      if (response['success']) {
+        // Salva il token in SharedPreferences
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('token', response['token']);
+
+        // Naviga alla pagina del profilo, passando userId e token
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProfilePage(
+              userId: response['userId'], // Passa userId dalla risposta del login
+              token: response['token'],     // Passa il token
+            ),
+          ),
+        );
+      } else {
+        setState(() {
+          message = 'Login failed: ${response['message']}';
+        });
+      }
     } catch (e) {
       setState(() {
         message = 'Error: $e';

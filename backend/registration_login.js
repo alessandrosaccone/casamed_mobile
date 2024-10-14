@@ -1,5 +1,5 @@
 const express = require('express');
-// const jwt = require('jsonwebtoken'); // Commentato per evitare errori, scommentalo quando necessario
+const jwt = require('jsonwebtoken'); // Commentato per evitare errori, scommentalo quando necessario
 const cors = require('cors');
 const pool = require('./db'); // Import the database connection from db.js
 const bcrypt = require('bcrypt'); // For password hashing
