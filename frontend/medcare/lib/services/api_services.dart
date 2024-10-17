@@ -1,4 +1,3 @@
-// lib/services/api_service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
@@ -76,9 +75,9 @@ class ApiService {
   // Metodo per verificare se l'utente è un medico
   Future<bool> isUserDoctor(int userId, String token) async {
     final response = await http.get(
-      Uri.parse('$baseUrl/user/$userId/role'), // Assicurati che l'endpoint sia corretto
+      Uri.parse('$baseUrl/user/$userId/role'),
       headers: {
-        'Authorization': 'Bearer $token', // Usa il token di autorizzazione
+        'Authorization': 'Bearer $token',
       },
     );
 
@@ -87,6 +86,40 @@ class ApiService {
       return data['isDoctor'] ?? false; // Restituisci true se è un medico, altrimenti false
     } else {
       throw Exception('Failed to check user role: ${response.statusCode} - ${response.body}');
+    }
+  }
+
+  Future<List<String>> getDoctorSpecializations(int userId, String token) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/users/$userId/specializations'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return List<String>.from(data['specializations']); // Assicurati che la risposta contenga la lista delle specializzazioni
+    } else {
+      throw Exception('Failed to fetch specializations: ${response.statusCode} - ${response.body}');
+    }
+  }
+
+  Future<void> updateDoctorSpecializations(int userId, List<String> specializations, String token) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/users/$userId/specializations'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'specializations': specializations,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to update specializations: ${response.statusCode} - ${response.body}');
     }
   }
 }

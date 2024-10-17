@@ -34,5 +34,6 @@ CREATE TABLE availability (
     
 );
 
-
+ALTER TABLE users_type_1
+ADD COLUMN specializations VARCHAR(255)[];
 
