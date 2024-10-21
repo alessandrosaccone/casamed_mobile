@@ -1,7 +1,7 @@
 -- Database: CasaMed
-CREATE TABLE users (
+/*CREATE TABLE users (
     id SERIAL PRIMARY KEY,          -- ID autoincrementante
-    email VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(255) NOT NULL,
     pass VARCHAR(255) NOT NULL,
     first_name VARCHAR(255),       -- Nome
     last_name VARCHAR(255),        -- Cognome
@@ -10,14 +10,16 @@ CREATE TABLE users (
 
 --Create user with role 0 (patient)
 CREATE TABLE users_type_0 (
-    CONSTRAINT users_type_0_pkey PRIMARY KEY (id)
+    CONSTRAINT users_type_0_pkey PRIMARY KEY (id),
+    CONSTRAINT users_type_0_email_unique UNIQUE (email) -- Vincolo di unicità per email
 ) INHERITS (users);  -- Eredita da users
 
 --Create user with role 1 (doctors)
 CREATE TABLE users_type_1 (
     CONSTRAINT users_type_1_pkey PRIMARY KEY (id),
     other_field_1 VARCHAR(255),    -- Campo specifico per il ruolo 1
-    other_field_2 VARCHAR(255)      -- Un altro campo specifico per il ruolo 1
+    other_field_2 VARCHAR(255),    -- Un altro campo specifico per il ruolo 1
+    CONSTRAINT users_type_1_email_unique UNIQUE (email) -- Vincolo di unicità per email      
 ) INHERITS (users);  -- Eredita da users
 
 ALTER TABLE users
@@ -32,8 +34,88 @@ CREATE TABLE availability (
     user_id INT NOT NULL,            -- Collegamento all'ID dell'utente (medico)
     available_date DATE NOT NULL    -- Data di disponibilità
     
+);*/
+
+
+/*-- Database: CasaMed
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,          -- ID autoincrementante
+    email VARCHAR(255) NOT NULL,
+    pass VARCHAR(255) NOT NULL,
+    first_name VARCHAR(255),        -- Nome
+    last_name VARCHAR(255),         -- Cognome
+    birth_date DATE,                -- Data di nascita
+    address VARCHAR(255),           -- Indirizzo
+    vat_number VARCHAR(20),         -- Partita IVA
+    professional_insurance_number VARCHAR(20),  -- Numero di assicurazione professionale
+    professional_insurance_expiry_date DATE,    -- Data di scadenza dell'assicurazione professionale
+    iban VARCHAR(34),               -- IBAN
+    professional_association_registration VARCHAR(50) -- Numero di registrazione associazione professionale
+);
+
+-- Create user with role 0 (patient)
+CREATE TABLE users_type_0 (
+    CONSTRAINT users_type_0_pkey PRIMARY KEY (id),
+    CONSTRAINT users_type_0_email_unique UNIQUE (email) -- Vincolo di unicità per email
+) INHERITS (users);  -- Eredita da users
+
+-- Create user with role 1 (doctors)
+CREATE TABLE users_type_1 (
+    CONSTRAINT users_type_1_pkey PRIMARY KEY (id),
+    other_field_1 VARCHAR(255),    -- Campo specifico per il ruolo 1
+    other_field_2 VARCHAR(255),    -- Un altro campo specifico per il ruolo 1
+    CONSTRAINT users_type_1_email_unique UNIQUE (email) -- Vincolo di unicità per email
+) INHERITS (users);  -- Eredita da users
+
+-- Disponibilità dei medici
+CREATE TABLE availability (
+    id SERIAL PRIMARY KEY,           -- ID univoco per ogni disponibilità
+    user_id INT NOT NULL,            -- Collegamento all'ID dell'utente (medico)
+    available_date DATE NOT NULL     -- Data di disponibilità
+);*/
+
+
+-- Database: CasaMed
+
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,                          -- ID autoincrementante
+    email VARCHAR(255) NOT NULL,
+    pass VARCHAR(255) NOT NULL,
+    first_name VARCHAR(255),                        -- Nome
+    last_name VARCHAR(255),                         -- Cognome
+    birth_date DATE,                                -- Data di nascita
+    address VARCHAR(255),                           -- Indirizzo
+    vat_number VARCHAR(20),                         -- Partita IVA
+    professional_insurance_number VARCHAR(20),      -- Numero di assicurazione professionale
+    professional_insurance_expiry_date DATE,        -- Data di scadenza dell'assicurazione professionale
+    iban VARCHAR(34),                               -- IBAN
+    professional_association_registration VARCHAR(50)  -- Numero di registrazione associazione professionale
+);
+
+-- Creazione utente con ruolo 0 (pazienti)
+CREATE TABLE users_type_0 (
+    CONSTRAINT users_type_0_pkey PRIMARY KEY (id),
+    CONSTRAINT users_type_0_email_unique UNIQUE (email) -- Vincolo di unicità per email
+) INHERITS (users);  -- Eredita da users
+
+-- Creazione utente con ruolo 1 (medici)
+CREATE TABLE users_type_1 (
+    CONSTRAINT users_type_1_pkey PRIMARY KEY (id),
+    other_field_1 VARCHAR(255),                     -- Campo specifico per il ruolo 1
+    other_field_2 VARCHAR(255),                     -- Un altro campo specifico per il ruolo 1
+    CONSTRAINT users_type_1_email_unique UNIQUE (email) -- Vincolo di unicità per email
+) INHERITS (users);  -- Eredita da users
+
+-- Disponibilità dei medici (con orario)
+CREATE TABLE availability (
+    id SERIAL PRIMARY KEY,                          -- ID univoco per ogni disponibilità
+    user_id INT NOT NULL,                           -- Collegamento all'ID dell'utente (medico)
+    available_date DATE NOT NULL,                   -- Data di disponibilità
+    start_time TIME NOT NULL,                       -- Orario di inizio disponibilità
+    end_time TIME NOT NULL                          -- Orario di fine disponibilità
 );
 
 ALTER TABLE users_type_1
 ADD COLUMN specializations VARCHAR(255)[];
+
 
