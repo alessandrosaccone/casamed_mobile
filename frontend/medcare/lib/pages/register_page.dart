@@ -438,10 +438,26 @@ class _RegisterPageState extends State<RegisterPage> {
                 controller: _lastNameController,
                 decoration: const InputDecoration(labelText: 'Cognome'),
               ),
-              TextField(
-                controller: _birthDateController,
-                decoration: const InputDecoration(labelText: 'Data di nascita (YYYY-MM-DD)'),
-              ),
+            TextField(
+              controller: _birthDateController,
+              decoration: const InputDecoration(labelText: 'Data di nascita (YYYY-MM-DD)'),
+              readOnly: true, // Rende il campo non modificabile manualmente
+              onTap: () async {
+                DateTime? pickedDate = await showDatePicker(
+                  context: context,
+                  initialDate: DateTime.now(),
+                  firstDate: DateTime(1900), // Imposta una data minima
+                  lastDate: DateTime(2100),  // Imposta una data massima
+                );
+                if (pickedDate != null) {
+                  setState(() {
+                    // Formatta la data in YYYY-MM-DD e la imposta nel controller
+                    _birthDateController.text = pickedDate.toIso8601String().split('T').first;
+                  });
+                }
+              },
+            ),
+
               DropdownButton<String>(
                 value: selectedRole,
                 hint: const Text('Seleziona il tuo ruolo'),
@@ -472,9 +488,25 @@ class _RegisterPageState extends State<RegisterPage> {
                   decoration: const InputDecoration(labelText: 'Numero Assicurazione'),
                 ),
                 TextField(
-                  controller: _expiryDateController, // New TextField for expiry date
+                  controller: _expiryDateController,
                   decoration: const InputDecoration(labelText: 'Data di scadenza dell\'assicurazione (YYYY-MM-DD)'),
+                  readOnly: true, // Rende il campo non modificabile manualmente
+                  onTap: () async {
+                    DateTime? pickedDate = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime(1900), // Imposta una data minima
+                      lastDate: DateTime(2100),  // Imposta una data massima
+                    );
+                    if (pickedDate != null) {
+                      setState(() {
+                        // Formatta la data in YYYY-MM-DD e la imposta nel controller
+                        _expiryDateController.text = pickedDate.toIso8601String().split('T').first;
+                      });
+                    }
+                  },
                 ),
+
                 TextField(
                   controller: _ibanController,
                   decoration: const InputDecoration(labelText: 'IBAN'),
