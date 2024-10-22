@@ -50,27 +50,6 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> fetchCounter() async {
-    final url = Uri.parse('$baseUrl/counter');
-    final response = await http.get(url);
-
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Failed to fetch counter: ${response.statusCode} - ${response.body}');
-    }
-  }
-
-  Future<Map<String, dynamic>> incrementCounter() async {
-    final url = Uri.parse('$baseUrl/increment');
-    final response = await http.post(url);
-
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Failed to increment counter: ${response.statusCode} - ${response.body}');
-    }
-  }
 
   // Metodo per verificare se l'utente è un medico
   Future<bool> isUserDoctor(int userId, String token) async {
@@ -103,23 +82,6 @@ class ApiService {
       return List<String>.from(data['specializations']); // Assicurati che la risposta contenga la lista delle specializzazioni
     } else {
       throw Exception('Failed to fetch specializations: ${response.statusCode} - ${response.body}');
-    }
-  }
-
-  Future<void> updateDoctorSpecializations(int userId, List<String> specializations, String token) async {
-    final response = await http.put(
-      Uri.parse('$baseUrl/users/$userId/specializations'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'specializations': specializations,
-      }),
-    );
-
-    if (response.statusCode != 200) {
-      throw Exception('Failed to update specializations: ${response.statusCode} - ${response.body}');
     }
   }
 }

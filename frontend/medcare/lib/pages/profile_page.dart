@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_services.dart';
 import 'calendar_page.dart'; // Import della pagina del calendario
-import 'specialization_page.dart'; // Import della pagina delle specializzazioni
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -102,20 +101,6 @@ class _ProfilePageState extends State<ProfilePage> {
                   );
                 },
                 child: Text('Vai al Calendario'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => SpecializationsPage(
-                        userId: widget.userId,
-                        token: widget.token,
-                      ),
-                    ),
-                  );
-                },
-                child: Text('Modifica le tue specializzazioni'),
               ),
           ],
         ),
