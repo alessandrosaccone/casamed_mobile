@@ -9,6 +9,7 @@ const registrationLoginRoutes = require('./registration_login');
 const profileRoutes = require('./profile'); // Importa le route del profilo
 const calendarRoutes = require('./calendar'); // Importa le route del calendario
 const roleRoutes = require('./role'); // Importa le route per il controllo del ruolo
+const discoveryRoutes = require('./discovery');
 
 // Middleware
 app.use(express.json());
@@ -19,6 +20,7 @@ app.use('/', registrationLoginRoutes);  // Route per login/registrazione
 app.use('/profile', profileRoutes);     // Route per il profilo
 app.use('/calendar', calendarRoutes);   // Route per il calendario
 app.use('/', roleRoutes); // Usa le route per il controllo del ruolo
+app.use('/', discoveryRoutes);
 
 // Avvia il server
 app.listen(port, () => {

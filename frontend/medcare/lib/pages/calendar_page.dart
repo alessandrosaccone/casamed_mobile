@@ -155,9 +155,11 @@ class _CalendarPageState extends State<CalendarPage> {
         url,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${widget.token}', // Token per l'autenticazione
+          'Authorization': 'Bearer ${widget.token}',
+          // Token per l'autenticazione
         },
-        body: jsonEncode({'availability': availabilityData}), // Dati in formato JSON
+        body: jsonEncode(
+            {'availability': availabilityData}), // Dati in formato JSON
       );
 
       if (response.statusCode == 200) {
@@ -165,19 +167,32 @@ class _CalendarPageState extends State<CalendarPage> {
           SnackBar(content: Text('Disponibilità salvata con successo!')),
         );
       } else {
+        // Analizza il corpo della risposta per errori specifici
+        final responseBody = jsonDecode(response.body);
+        String errorMessage;
+
+        if (responseBody.containsKey('message')) {
+          errorMessage = responseBody['message'];
+        } else if (responseBody.containsKey('errors')) {
+          // Se ci sono errori di validazione, mostralo
+          List<dynamic> errors = responseBody['errors'];
+          errorMessage = errors.map((e) => e['msg']).join(', ');
+        } else {
+          errorMessage = 'Errore durante il salvataggio.';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Errore durante il salvataggio.')),
+          SnackBar(content: Text(errorMessage)),
         );
       }
     } catch (e) {
       print('Errore nella richiesta: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Si è verificato un errore.')),
+        SnackBar(content: Text('Si è verificato un errore di rete.')),
       );
     }
   }
 }
-
 
 
 
