@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:http/http.dart' as http; // Importa il pacchetto http
 import 'dart:convert'; // Import per la codifica in JSON
+import '../services/api_services.dart';
+import 'booking_page.dart'; // Importa la pagina BookingPage
 
 class CalendarPage extends StatefulWidget {
   final int userId; // Aggiungi il parametro User ID
@@ -14,6 +16,7 @@ class CalendarPage extends StatefulWidget {
 }
 
 class _CalendarPageState extends State<CalendarPage> {
+  List<Map<String, dynamic>> _availability = [];
   CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _selectedDay = DateTime.now();
   DateTime _focusedDay = DateTime.now();
@@ -24,6 +27,43 @@ class _CalendarPageState extends State<CalendarPage> {
 
   // Set per memorizzare i giorni selezionati
   Set<DateTime> _selectedDays = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAvailability(); // Load existing availability on page load
+  }
+
+  Future<void> _fetchAvailability() async {
+    try {
+      final apiService = ApiService(baseUrl: 'http://10.0.2.2:3000'); // Change to actual base URL if needed
+      List<Map<String, dynamic>> availability = await apiService.getDoctorAvailability(widget.userId, widget.token);
+
+      setState(() {
+        _availability = availability;
+      });
+    } catch (e) {
+      print('Error fetching availability: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to fetch availability.')),
+      );
+    }
+  }
+
+  // Funzione per navigare alla pagina di gestione delle disponibilità
+  void _navigateToBookingPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BookingPage(
+          doctorId: widget.userId, // Passa l'ID del dottore
+          doctorName: 'Doctor Name', // Sostituisci con il nome del dottore
+          token: widget.token,
+          isDoctor: true, // Imposta true se l'utente è un dottore, altrimenti false
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,12 +82,7 @@ class _CalendarPageState extends State<CalendarPage> {
               setState(() {
                 _selectedDay = selectedDay;
                 _focusedDay = focusedDay;
-
-                if (_selectedDays.contains(selectedDay)) {
-                  _selectedDays.remove(selectedDay); // Deseleziona la data
-                } else {
-                  _selectedDays.add(selectedDay); // Aggiungi la data
-                }
+                _selectedDays.contains(selectedDay) ? _selectedDays.remove(selectedDay) : _selectedDays.add(selectedDay);
               });
             },
             calendarFormat: _calendarFormat,
@@ -58,10 +93,15 @@ class _CalendarPageState extends State<CalendarPage> {
             },
           ),
           SizedBox(height: 20),
-          _buildTimeSelector(), // Costruzione dei selettori di orario
+          _buildTimeSelector(),
           ElevatedButton(
             onPressed: _saveAvailability,
             child: Text('Salva Disponibilità'),
+          ),
+          SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: _navigateToBookingPage,
+            child: Text('Delete availabilities'),
           ),
         ],
       ),
@@ -155,11 +195,9 @@ class _CalendarPageState extends State<CalendarPage> {
         url,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${widget.token}',
-          // Token per l'autenticazione
+          'Authorization': 'Bearer ${widget.token}', // Token per l'autenticazione
         },
-        body: jsonEncode(
-            {'availability': availabilityData}), // Dati in formato JSON
+        body: jsonEncode({'availability': availabilityData}), // Dati in formato JSON
       );
 
       if (response.statusCode == 200) {
@@ -193,6 +231,3 @@ class _CalendarPageState extends State<CalendarPage> {
     }
   }
 }
-
-
-

@@ -178,4 +178,35 @@ router.get('/:userId', verifyToken, async (req, res) => {
     }
 });
 
+// Route to delete a specific availability
+const { parseISO, format } = require('date-fns');
+
+router.delete('/:userId', verifyToken, checkIfDoctor, async (req, res) => {
+    const userId = req.params.userId;
+    const { date, start_time, end_time } = req.body;
+
+    // Usa date-fns per evitare conversioni UTC
+    const date_formatted = format(parseISO(date), 'yyyy-MM-dd');
+
+    console.log(date_formatted, start_time, end_time, userId);
+
+    try {
+        const result = await pool.query(
+            `DELETE FROM availability 
+             WHERE user_id = $1 AND available_date = $2 AND start_time = $3 AND end_time = $4`,
+            [userId, date_formatted, start_time, end_time]
+        );
+
+        if (result.rowCount > 0) {
+            res.status(200).json({ message: 'Availability deleted successfully.' });
+        } else {
+            res.status(404).json({ message: 'Availability not found.' });
+        }
+    } catch (err) {
+        console.error('Error deleting availability:', err);
+        res.status(500).json({ message: 'Error deleting availability.' });
+    }
+});
+
+
 module.exports = router;

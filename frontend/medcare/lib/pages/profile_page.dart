@@ -78,7 +78,7 @@ class _ProfilePageState extends State<ProfilePage> {
       case 0:
         return _buildProfile(); // Mostra il profilo
       case 1:
-        return DiscoveryPage(apiService: apiService, token: widget.token); // Passa apiService e token a DiscoveryPage
+        return DiscoveryPage(apiService: apiService, token: widget.token, isDoctor: isDoctor,); // Passa apiService e token a DiscoveryPage
     // Mostra la pagina "Prova"
       default:
         return _buildProfile();

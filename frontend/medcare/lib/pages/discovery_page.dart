@@ -6,8 +6,14 @@ import 'dart:convert'; // Per gestire le decodifiche
 class DiscoveryPage extends StatefulWidget {
   final ApiService apiService;
   final String token;
+  final bool isDoctor; // Aggiungi isDoctor per determinare se l'utente è un dottore
 
-  const DiscoveryPage({Key? key, required this.apiService, required this.token}) : super(key: key);
+  const DiscoveryPage({
+    Key? key,
+    required this.apiService,
+    required this.token,
+    required this.isDoctor, // Richiede di specificare se l'utente è un dottore
+  }) : super(key: key);
 
   @override
   _DiscoveryPageState createState() => _DiscoveryPageState();
@@ -26,7 +32,6 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _doctors,
         builder: (context, snapshot) {
@@ -60,6 +65,7 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
                           context,
                           MaterialPageRoute(
                             builder: (context) => BookingPage(
+                              isDoctor: widget.isDoctor, // Passa il parametro isDoctor
                               doctorId: doctorId, // Passa l'id del medico
                               doctorName: '${doctor['first_name']} ${doctor['last_name']}', // Passa il nome del medico
                               token: widget.token,
