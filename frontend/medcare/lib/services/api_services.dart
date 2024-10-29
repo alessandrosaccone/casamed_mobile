@@ -84,4 +84,55 @@ class ApiService {
       throw Exception('Failed to fetch specializations: ${response.statusCode} - ${response.body}');
     }
   }
+  Future<List<Map<String, dynamic>>> getDoctors(String token) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/discovery'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return List<Map<String, dynamic>>.from(data['doctors']);
+    } else {
+      throw Exception('Failed to fetch doctors: ${response.statusCode} - ${response.body}');
+    }
+  }
+  Future<List<Map<String, dynamic>>> getDoctorAvailability(int userId, String token) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/calendar/$userId'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return List<Map<String, dynamic>>.from(data['availability']);
+    } else {
+      throw Exception('Failed to fetch availability: ${response.statusCode} - ${response.body}');
+    }
+  }
+  Future<void> deleteAvailability(int userId, String token, String date, String startTime, String endTime) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/calendar/$userId'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'date': date,
+        'start_time': startTime,
+        'end_time': endTime,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to delete availability: ${response.statusCode} - ${response.body}');
+    }
+  }
+
 }

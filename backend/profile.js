@@ -1,24 +1,7 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
 const pool = require('./db'); // Importa il database
+const authenticateToken = require('./authMiddleware'); // Importa il middleware di autenticazione
 const router = express.Router();
-
-// Middleware per autenticare l'utente tramite JWT
-function authenticateToken(req, res, next) {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-  if (token == null) return res.sendStatus(401); // Se non c'è il token
-
-  jwt.verify(token, "your_secret_key", (err, user) => { /*SECURITY LEAK*/
-    if (err) {
-      console.log("Wrong token")
-      return res.sendStatus(403); // Token non valido
-    }
-    req.user = user;
-    console.log("Right token")
-    next();
-  });
-}
 
 // Rotta protetta per il profilo
 router.get('/:userId', authenticateToken, async (req, res) => {
@@ -26,7 +9,7 @@ router.get('/:userId', authenticateToken, async (req, res) => {
 
   // Assicura che l'utente possa accedere solo ai propri dati
   if (req.user.id !== parseInt(userId)) {
-    console.log("Not authorized to see the profile")
+    console.log("Not authorized to see the profile");
     return res.status(403).json({ success: false, message: 'Access denied' });
   }
 
