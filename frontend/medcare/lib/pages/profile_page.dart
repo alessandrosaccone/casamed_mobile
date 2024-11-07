@@ -1,9 +1,12 @@
+// profile_page.dart
 import 'package:flutter/material.dart';
 import '../services/api_services.dart';
 import 'calendar_page.dart'; // Import della pagina del calendario
 import 'discovery_page.dart'; // Import della pagina del calendario
+import 'urgentBooking_page.dart'; // Import della pagina per prenotazione urgente
+import 'booking_page.dart'; // Import della pagina per prenotazione regolare
+import 'feeBooking_page.dart'; // Import della pagina per prenotazione a pagamento
 import 'package:shared_preferences/shared_preferences.dart';
-
 
 class ProfilePage extends StatefulWidget {
   final int userId;
@@ -18,6 +21,7 @@ class ProfilePage extends StatefulWidget {
   @override
   State<ProfilePage> createState() => _ProfilePageState();
 }
+
 class _ProfilePageState extends State<ProfilePage> {
   late ApiService apiService;
   Map<String, dynamic>? userProfile;
@@ -78,7 +82,11 @@ class _ProfilePageState extends State<ProfilePage> {
       case 0:
         return _buildProfile(); // Mostra il profilo
       case 1:
-        return DiscoveryPage(apiService: apiService, token: widget.token, isDoctor: isDoctor,); // Passa apiService e token a DiscoveryPage
+        return DiscoveryPage(
+          apiService: apiService,
+          token: widget.token,
+          isDoctor: isDoctor,
+        ); // Passa apiService e token a DiscoveryPage
     // Mostra la pagina "Prova"
       default:
         return _buildProfile();
@@ -117,6 +125,49 @@ class _ProfilePageState extends State<ProfilePage> {
               },
               child: const Text('Vai al Calendario'),
             ),
+
+          // I tre bottoni aggiuntivi con la navigazione corretta
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => UrgentBookingPage( doctorId: userProfile!['userData']['id'],
+                    doctorName: userProfile!['userData']['first_name'],
+                    token: widget.token,
+                    isDoctor: isDoctor,),
+                ),
+              );
+            },
+            child: const Text('Prenotazione Urgente'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => BookingPage(
+                    doctorId: userProfile!['userData']['id'],
+                    doctorName: userProfile!['userData']['first_name'],
+                    token: widget.token,
+                    isDoctor: isDoctor,
+                  ),
+                ),
+              );
+            },
+            child: const Text('Prenotazione Regolare'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => FeeBookingPage(),
+                ),
+              );
+            },
+            child: const Text('Prenotazione a Pagamento'),
+          ),
         ],
       ),
     );
@@ -152,11 +203,8 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-
-
   List<Widget> _buildAdditionalFields(Map<String, dynamic> userData) {
     List<Widget> fields = [];
-
 
     if (userData['birth_date'] != null) {
       fields.add(Text('Data di nascita: ${userData['birth_date']}'));
@@ -171,7 +219,8 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     if (userData['professional_insurance_number'] != null) {
-      fields.add(Text("Numero d'assicurazione professionale: ${userData['professional_insurance_number']}"));
+      fields.add(
+          Text("Numero d'assicurazione professionale: ${userData['professional_insurance_number']}"));
     }
 
     if (userData['iban'] != null) {
@@ -179,9 +228,15 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     if (userData['professional_association_registration'] != null) {
-      fields.add(Text("Identificativo dell'iscrizione all'ordine professionale: ${userData['professional_association_registration']}"));
+      fields.add(Text(
+          "Identificativo dell'iscrizione all'ordine professionale: ${userData['professional_association_registration']}"));
     }
 
     return fields; // Returns the list of non-null widgets
   }
 }
+
+
+
+
+

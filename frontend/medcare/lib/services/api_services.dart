@@ -50,7 +50,6 @@ class ApiService {
     }
   }
 
-
   // Metodo per verificare se l'utente è un medico
   Future<bool> isUserDoctor(int userId, String token) async {
     final response = await http.get(
@@ -62,7 +61,7 @@ class ApiService {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      return data['isDoctor'] ?? false; // Restituisci true se è un medico, altrimenti false
+      return data['isDoctor'] ?? false;
     } else {
       throw Exception('Failed to check user role: ${response.statusCode} - ${response.body}');
     }
@@ -79,11 +78,12 @@ class ApiService {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      return List<String>.from(data['specializations']); // Assicurati che la risposta contenga la lista delle specializzazioni
+      return List<String>.from(data['specializations']);
     } else {
       throw Exception('Failed to fetch specializations: ${response.statusCode} - ${response.body}');
     }
   }
+
   Future<List<Map<String, dynamic>>> getDoctors(String token) async {
     final response = await http.get(
       Uri.parse('$baseUrl/discovery'),
@@ -100,6 +100,7 @@ class ApiService {
       throw Exception('Failed to fetch doctors: ${response.statusCode} - ${response.body}');
     }
   }
+
   Future<List<Map<String, dynamic>>> getDoctorAvailability(int userId, String token) async {
     final response = await http.get(
       Uri.parse('$baseUrl/calendar/$userId'),
@@ -116,6 +117,7 @@ class ApiService {
       throw Exception('Failed to fetch availability: ${response.statusCode} - ${response.body}');
     }
   }
+
   Future<void> deleteAvailability(int userId, String token, String date, String startTime, String endTime) async {
     final response = await http.delete(
       Uri.parse('$baseUrl/calendar/$userId'),
@@ -135,4 +137,18 @@ class ApiService {
     }
   }
 
+  // Funzione per inviare la richiesta di reset della password
+  Future<Map<String, dynamic>> requestPasswordReset(String email) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/requestPasswordReset'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({"email": email}),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to send password reset request: ${response.statusCode} - ${response.body}');
+    }
+  }
 }

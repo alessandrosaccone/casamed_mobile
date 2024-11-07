@@ -1,8 +1,9 @@
 // lib/pages/login_page.dart
 import 'package:flutter/material.dart';
 import '../services/api_services.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Import shared_preferences
-import 'profile_page.dart'; // Import the ProfilePage
+import 'package:shared_preferences/shared_preferences.dart';
+import 'profile_page.dart';
+import 'request_password_reset_page.dart'; // Importa la pagina per richiedere il reset password
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -33,17 +34,15 @@ class _LoginPageState extends State<LoginPage> {
 
       // Controlla se il login ha avuto successo
       if (response['success']) {
-        // Salva il token in SharedPreferences
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', response['token']);
 
-        // Naviga alla pagina del profilo, passando userId e token
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => ProfilePage(
-              userId: response['userId'], // Passa userId dalla risposta del login
-              token: response['token'],     // Passa il token
+              userId: response['userId'],
+              token: response['token'],
             ),
           ),
         );
@@ -57,6 +56,14 @@ class _LoginPageState extends State<LoginPage> {
         message = 'Error: $e';
       });
     }
+  }
+
+  // Aggiungi una funzione per navigare alla pagina di richiesta reset password
+  void navigateToPasswordResetRequest() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => RequestPasswordResetPage()),
+    );
   }
 
   @override
@@ -80,7 +87,15 @@ class _LoginPageState extends State<LoginPage> {
               onPressed: login,
               child: const Text('Login'),
             ),
-            Text(message, style: const TextStyle(color: Colors.red)),
+            Text(
+              message,
+              style: const TextStyle(color: Colors.red),
+            ),
+            const SizedBox(height: 20),
+            TextButton(
+              onPressed: navigateToPasswordResetRequest,
+              child: const Text('Password dimenticata?'),
+            ),
           ],
         ),
       ),
