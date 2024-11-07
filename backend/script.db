@@ -46,6 +46,12 @@ ADD COLUMN verification_token VARCHAR(255),
 ADD COLUMN is_verified BOOLEAN DEFAULT FALSE;
 
 
+ALTER TABLE users
+ADD COLUMN reset_token VARCHAR(255),            -- Token per il reset della password
+ADD COLUMN reset_token_expiry TIMESTAMP;       -- Data e ora di scadenza del token
+
+
+
 
 
 

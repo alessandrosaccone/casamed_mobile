@@ -25,7 +25,26 @@ const sendVerificationEmail = async (email, verificationLink) => {
   console.log(`Verification email sent to ${email}`);
 };
 
-module.exports = { sendVerificationEmail };
+// Funzione per inviare l'email di recupero password
+const sendPasswordResetEmail = async (email, resetLink) => {
+  const mailOptions = {
+    from: 'no-reply@visitame.it',
+    to: email,
+    subject: 'Password Reset Request',
+    text: `Click on this link to reset your password: ${resetLink}`,
+    html: `<p>Click on this <a href="${resetLink}">link</a> to reset your password.</p>`
+  };
+
+  await transporter.sendMail(mailOptions);
+  console.log(`Password reset email sent to ${email}`);
+};
+
+module.exports = { sendVerificationEmail, sendPasswordResetEmail };
+
+
+
+
+
 
 
 
