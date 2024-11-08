@@ -51,8 +51,18 @@ ADD COLUMN reset_token VARCHAR(255),            -- Token per il reset della pass
 ADD COLUMN reset_token_expiry TIMESTAMP;       -- Data e ora di scadenza del token
 
 
-
-
+-- Creazione della tabella bookings per le prenotazioni
+CREATE TABLE bookings (
+    id SERIAL PRIMARY KEY,                     -- ID univoco per ogni prenotazione
+    patient_id INT NOT NULL,                   -- ID dell'utente paziente (role 0)
+    doctor_id INT NOT NULL,                    -- ID dell'utente medico (role 1)
+    booking_date DATE NOT NULL,                -- Data della prenotazione
+    start_time TIME NOT NULL,                  -- Orario di inizio prenotazione
+    end_time TIME NOT NULL,                    -- Orario di fine prenotazione
+    
+    CONSTRAINT fk_patient FOREIGN KEY (patient_id) REFERENCES users_type_0 (id) ON DELETE CASCADE,
+    CONSTRAINT fk_doctor FOREIGN KEY (doctor_id) REFERENCES users_type_1 (id) ON DELETE CASCADE
+);
 
 
 

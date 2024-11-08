@@ -1,12 +1,9 @@
 // profile_page.dart
 import 'package:flutter/material.dart';
+import 'selection_discovery_page.dart';
 import '../services/api_services.dart';
 import 'calendar_page.dart'; // Import della pagina del calendario
-import 'discovery_page.dart'; // Import della pagina del calendario
-import 'urgentBooking_page.dart'; // Import della pagina per prenotazione urgente
-import 'booking_page.dart'; // Import della pagina per prenotazione regolare
-import 'feeBooking_page.dart'; // Import della pagina per prenotazione a pagamento
-import 'package:shared_preferences/shared_preferences.dart';
+
 
 class ProfilePage extends StatefulWidget {
   final int userId;
@@ -82,8 +79,9 @@ class _ProfilePageState extends State<ProfilePage> {
       case 0:
         return _buildProfile(); // Mostra il profilo
       case 1:
-        return DiscoveryPage(
+        return SelectionDiscoveryPage(
           apiService: apiService,
+          userId: widget.userId,
           token: widget.token,
           isDoctor: isDoctor,
         ); // Passa apiService e token a DiscoveryPage
@@ -126,49 +124,7 @@ class _ProfilePageState extends State<ProfilePage> {
               child: const Text('Vai al Calendario'),
             ),
 
-          // I tre bottoni aggiuntivi con la navigazione corretta
-          ElevatedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => UrgentBookingPage( doctorId: userProfile!['userData']['id'],
-                    doctorName: userProfile!['userData']['first_name'],
-                    token: widget.token,
-                    isDoctor: isDoctor,),
-                ),
-              );
-            },
-            child: const Text('Prenotazione Urgente'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => BookingPage(
-                    doctorId: userProfile!['userData']['id'],
-                    doctorName: userProfile!['userData']['first_name'],
-                    token: widget.token,
-                    isDoctor: isDoctor,
-                  ),
-                ),
-              );
-            },
-            child: const Text('Prenotazione Regolare'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => FeeBookingPage(),
-                ),
-              );
-            },
-            child: const Text('Prenotazione a Pagamento'),
-          ),
-        ],
+          ],
       ),
     );
   }

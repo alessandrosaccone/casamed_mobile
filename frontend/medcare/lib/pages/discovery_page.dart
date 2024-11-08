@@ -32,6 +32,7 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(title: const Text('Discovery')),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _doctors,
         builder: (context, snapshot) {
