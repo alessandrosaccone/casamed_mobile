@@ -49,6 +49,7 @@ class SelectionDiscoveryPage extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (context) => DiscoveryPage(
+                      userId: userId,
                       apiService: apiService,
                       token: token,
                       isDoctor: isDoctor,
