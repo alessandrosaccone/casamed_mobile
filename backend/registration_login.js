@@ -251,7 +251,5 @@ app.post('/reset-password', async (req, res) => {
   }
 });
 
-
-
 module.exports = app;
 

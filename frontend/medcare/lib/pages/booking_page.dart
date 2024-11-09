@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../services/api_services.dart';
-import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class BookingPage extends StatefulWidget {
   final int doctorId;
+  final int userId;
   final String doctorName;
   final String token;
   final bool isDoctor;
-  final int userId; // Aggiungi il parametro userId
 
   const BookingPage({
     Key? key,
+    required this.userId,
     required this.doctorId,
     required this.doctorName,
     required this.token,
     required this.isDoctor,
-    required this.userId
   }) : super(key: key);
 
   @override
@@ -110,8 +110,6 @@ class _BookingPageState extends State<BookingPage> {
     return availabilities;
   }
 
-
-
   Future<void> _deleteAvailability(String date, String startTime, String endTime) async {
     if (widget.isDoctor) {
       try {
@@ -140,7 +138,7 @@ class _BookingPageState extends State<BookingPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.doctorName),
+        title: Text('Prenotazioni'),
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _doctorAvailability,
@@ -185,53 +183,59 @@ class _BookingPageState extends State<BookingPage> {
     }
 
     return ListView.builder(
-      itemCount: dayEvents.length,
-      itemBuilder: (context, index) {
-        final event = dayEvents[index];
+        itemCount: dayEvents.length,
+        itemBuilder: (context, index) {
+          final event = dayEvents[index];
+          return ListTile(
+            title: Text(event['timeRange']),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.isDoctor)
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () async {
+                      final confirm = await showDialog(
+                        context: context,
+                        builder: (context) =>
+                            AlertDialog(
+                              title: const Text('Conferma eliminazione'),
+                              content: const Text(
+                                  'Sei sicuro di voler eliminare questa disponibilità?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.pop(context, false),
+                                  child: const Text('Annulla'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: const Text('Elimina'),
+                                ),
+                              ],
+                            ),
+                      );
 
-        return ListTile(
-          title: Text(event['timeRange']),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (widget.isDoctor)
+                      if (confirm) {
+                        await _deleteAvailability(
+                            event['date'], event['start_time'],
+                            event['end_time']);
+                        await _loadDoctorAvailability();
+                      }
+                    },
+                  ),
+                if (!widget.isDoctor)
                 IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () async {
-                    final confirm = await showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Conferma eliminazione'),
-                        content: const Text('Sei sicuro di voler eliminare questa disponibilità?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, false),
-                            child: const Text('Annulla'),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, true),
-                            child: const Text('Elimina'),
-                          ),
-                        ],
-                      ),
-                    );
-
-                    if (confirm) {
-                      await _deleteAvailability(event['date'], event['start_time'], event['end_time']);
-                      await _loadDoctorAvailability();
-                    }
+                  icon: const Icon(Icons.add, color: Colors.green),
+                  onPressed: () {
+                    _createBooking(
+                        event['date'], event['start_time'], event['end_time']);
                   },
                 ),
-              IconButton(
-                icon: const Icon(Icons.add, color: Colors.green),
-                onPressed: () {
-                  _createBooking(event['date'], event['start_time'], event['end_time']);
-                },
-              ),
-            ],
-          ),
-        );
-      },
+              ],
+            ),
+          );
+        }
     );
   }
 }

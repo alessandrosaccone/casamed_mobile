@@ -5,16 +5,16 @@ import 'dart:convert'; // Per gestire le decodifiche
 
 class DiscoveryPage extends StatefulWidget {
   final ApiService apiService;
+  final int userId;
   final String token;
   final bool isDoctor;
-  final int userId;
 
   const DiscoveryPage({
     Key? key,
+    required this.userId,
     required this.apiService,
     required this.token,
     required this.isDoctor,
-    required this.userId// Richiede di specificare se l'utente è un dottore
   }) : super(key: key);
 
   @override

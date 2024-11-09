@@ -56,11 +56,11 @@ class _CalendarPageState extends State<CalendarPage> {
       context,
       MaterialPageRoute(
         builder: (context) => BookingPage(
+          doctorId: widget.userId,
+          doctorName: 'Not useful',
+          isDoctor:  true,
           userId: widget.userId,
-          doctorId: widget.userId, // Passa l'ID del dottore
-          doctorName: 'Doctor Name', // Sostituisci con il nome del dottore
           token: widget.token,
-          isDoctor: true, // Imposta true se l'utente è un dottore, altrimenti false
         ),
       ),
     );

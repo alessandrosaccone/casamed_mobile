@@ -4,7 +4,7 @@ import '../services/api_services.dart';
 import 'calendar_page.dart'; // Import della pagina del calendario
 import 'discovery_page.dart'; // Import della pagina per la scoperta dei medici
 import 'urgentBooking_page.dart'; // Import della pagina per prenotazione urgente
-import 'booking_page.dart'; // Import della pagina per prenotazione regolare
+import 'feeBooking_page.dart'; // Import della pagina per prenotazione regolare
 
 class SelectionDiscoveryPage extends StatelessWidget {
   final ApiService apiService;
@@ -64,10 +64,7 @@ class SelectionDiscoveryPage extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => UrgentBookingPage(
-                        doctorId: userId,
-                        token: token,
-                        isDoctor: isDoctor, doctorName: 'Nome dottore',),
+                    builder: (context) => FeeBookingPage(),
                   ),
                 );
               },

@@ -6,12 +6,10 @@ const authenticateToken = require('./authMiddleware'); // Middleware di autentic
 // Endpoint protetto per ottenere i medici
 router.get('/discovery', authenticateToken, async (req, res) => {
   try {
-    // Recupera ID, nome e cognome dei medici
     const result = await pool.query(`
       SELECT id, first_name, last_name 
       FROM users_type_1
     `);
-
     res.json({ success: true, doctors: result.rows });
   } catch (err) {
     console.error('Errore durante il recupero dei dati:', err);
@@ -19,12 +17,9 @@ router.get('/discovery', authenticateToken, async (req, res) => {
   }
 });
 
-// Endpoint protetto per creare una prenotazione
 router.put('/bookings', authenticateToken, async (req, res) => {
   const { doctorId, patientId, bookingDate, startTime, endTime } = req.body;
-
   try {
-    // Validazione dei dati di input
     if (!doctorId || !patientId || !bookingDate || !startTime || !endTime) {
       return res.status(400).json({ success: false, message: 'Dati mancanti per la prenotazione.' });
     }
@@ -36,13 +31,32 @@ router.put('/bookings', authenticateToken, async (req, res) => {
       RETURNING *;
     `, [doctorId, patientId, bookingDate, startTime, endTime]);
 
-    // Risposta con i dettagli della prenotazione
+    const date = new Date(bookingDate);
+
+    // Estrai solo la parte della data (anno-mese-giorno)
+    const formattedDate = date.toISOString().split('T')[0]; // '2024-11-27'
+
+    console.log(formattedDate);
+
+    // Rimozione della disponibilità corrispondente nella tabella availability
+    const deleteAvailability = await pool.query(`
+      DELETE FROM availability
+      WHERE user_id = $1
+      AND available_date = $2
+      AND start_time = $3
+      AND end_time = $4;
+    `, [doctorId, formattedDate, startTime, endTime]);
+
+
+    if (deleteAvailability.rowCount === 0) {
+      console.warn('Disponibilità eliminata con successo');
+    }
+
     res.json({ success: true, booking: result.rows[0] });
   } catch (err) {
     console.error('Errore durante la creazione della prenotazione:', err);
-    
-    // Risposta d'errore dettagliata
-    if (err.code === '23505') { // Codice errore per violazione di unicità
+
+    if (err.code === '23505') { // Violazione di unicità
       res.status(409).json({ success: false, message: 'La prenotazione esiste già per questo orario.' });
     } else {
       res.status(500).json({ success: false, message: 'Errore durante la creazione della prenotazione.' });
