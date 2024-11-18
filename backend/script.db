@@ -64,6 +64,17 @@ CREATE TABLE bookings (
     CONSTRAINT fk_doctor FOREIGN KEY (doctor_id) REFERENCES users_type_1 (id) ON DELETE CASCADE
 );
 
+ALTER TABLE bookings
+ADD COLUMN symptom_description TEXT;  -- Descrizione dei sintomi del paziente
+
+ALTER TABLE availability
+ADD COLUMN max_patients INT;  -- Numero massimo di pazienti che il medico accetta
+
+ALTER TABLE bookings
+ADD COLUMN accepted_booking BOOLEAN DEFAULT false;
+
+
+
 
 
 

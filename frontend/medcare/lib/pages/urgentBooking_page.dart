@@ -1,4 +1,87 @@
 import 'package:flutter/material.dart';
+import '../services/api_services.dart';
+
+class UrgentBookingPage extends StatefulWidget {
+  final int doctorId;
+  final String doctorName;
+  final String token;
+  final bool isDoctor;
+
+  const UrgentBookingPage({
+    Key? key,
+    required this.doctorId,
+    required this.doctorName,
+    required this.token,
+    required this.isDoctor,
+  }) : super(key: key);
+
+  @override
+  _UrgentBookingPageState createState() => _UrgentBookingPageState();
+}
+
+class _UrgentBookingPageState extends State<UrgentBookingPage> {
+  late Future<Map<String, dynamic>> _closestAvailability; // Variabile per la disponibilità urgente
+
+  @override
+  void initState() {
+    super.initState();
+    _closestAvailability = _loadUrgentBooking(); // Carica la disponibilità più urgente
+  }
+
+  // Funzione per ottenere la disponibilità urgente più vicina
+  Future<Map<String, dynamic>> _loadUrgentBooking() async {
+    try {
+      final availability = await ApiService(baseUrl: 'http://10.0.2.2:3000')
+          .getUrgentBooking(widget.doctorId, widget.token); // Chiamata al nuovo endpoint
+      return availability;
+    } catch (e) {
+      throw Exception('Errore nel recuperare la disponibilità urgente: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.doctorName),
+      ),
+      body: FutureBuilder<Map<String, dynamic>>(
+        future: _closestAvailability,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+
+          // Se non ci sono disponibilità urgenti
+          if (!snapshot.hasData || snapshot.data == null) {
+            return const Center(child: Text('Nessuna disponibilità urgente trovata.'));
+          }
+
+          final closestAvailability = snapshot.data!;
+
+          return Center(
+            child: ListTile(
+              title: Text('Disponibilità più vicina:'),
+              subtitle: Text('${closestAvailability['available_date']}'),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+
+
+
+
+
+
+
+
+/*import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../services/api_services.dart';
 
@@ -167,31 +250,6 @@ class _UrgentBookingPageState extends State<UrgentBookingPage> {
           title: Text(event['timeRange']),
         );
       },
-    );
-  }
-}
-
-
-
-
-
-
-
-
-
-/*// urgentBooking_page.dart
-import 'package:flutter/material.dart';
-
-class UrgentBookingPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Prenotazione Urgente'),
-      ),
-      body: Center(
-        child: Text('Questa è la pagina per la prenotazione urgente.'),
-      ),
     );
   }
 }*/

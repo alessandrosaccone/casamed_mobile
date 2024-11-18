@@ -151,4 +151,17 @@ class ApiService {
       throw Exception('Failed to send password reset request: ${response.statusCode} - ${response.body}');
     }
   }
+  // Metodo per ottenere la disponibilità urgente
+  Future<Map<String, dynamic>> getUrgentBooking(int doctorId, String token) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/urgentbookings'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Failed to load urgent booking');
+    }
+  }
 }

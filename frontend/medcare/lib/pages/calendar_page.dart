@@ -102,7 +102,7 @@ class _CalendarPageState extends State<CalendarPage> {
           SizedBox(height: 20),
           ElevatedButton(
             onPressed: _navigateToBookingPage,
-            child: Text('Delete availabilities'),
+            child: Text('Cancella Disponibilità'),
           ),
         ],
       ),
