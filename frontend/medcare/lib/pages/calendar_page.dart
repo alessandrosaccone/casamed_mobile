@@ -18,6 +18,7 @@ class CalendarPage extends StatefulWidget {
 class _CalendarPageState extends State<CalendarPage> {
   List<Map<String, dynamic>> _availability = [];
   CalendarFormat _calendarFormat = CalendarFormat.month;
+  Map<DateTime, List<dynamic>> _events = {}; // Mappa per i giorni con eventi
   DateTime _selectedDay = DateTime.now();
   DateTime _focusedDay = DateTime.now();
 
@@ -34,13 +35,28 @@ class _CalendarPageState extends State<CalendarPage> {
     _fetchAvailability(); // Load existing availability on page load
   }
 
+  DateTime _normalizeDate(DateTime date) {
+    return DateTime(date.year, date.month, date.day);
+  }
+
+
   Future<void> _fetchAvailability() async {
     try {
-      final apiService = ApiService(baseUrl: 'http://10.0.2.2:3000'); // Change to actual base URL if needed
-      List<Map<String, dynamic>> availability = await apiService.getDoctorAvailability(widget.userId, widget.token);
+      final apiService = ApiService(baseUrl: 'http://10.0.2.2:3000');
+      List<Map<String, dynamic>> availability =
+      await apiService.getDoctorAvailability(widget.userId, widget.token);
 
       setState(() {
-        _availability = availability;
+        _events.clear();
+        for (var slot in availability) {
+          DateTime date = _normalizeDate(DateTime.parse(slot['date']).toLocal());
+
+          if (_events.containsKey(date)) {
+            _events[date]?.add(slot); // Aggiungi evento esistente
+          } else {
+            _events[date] = [slot]; // Crea nuovo giorno con eventi
+          }
+        }
       });
     } catch (e) {
       print('Error fetching availability: $e');
@@ -49,6 +65,7 @@ class _CalendarPageState extends State<CalendarPage> {
       );
     }
   }
+
 
   // Funzione per navigare alla pagina di gestione delle disponibilità
   void _navigateToBookingPage() {
@@ -78,6 +95,9 @@ class _CalendarPageState extends State<CalendarPage> {
             firstDay: DateTime.utc(2020, 10, 16),
             lastDay: DateTime.utc(2030, 10, 16),
             focusedDay: _focusedDay,
+            eventLoader: (day) {
+              return _events[_normalizeDate(day)] ?? [];
+            },
             selectedDayPredicate: (day) => _selectedDays.contains(day),
             onDaySelected: (selectedDay, focusedDay) {
               setState(() {
@@ -102,7 +122,7 @@ class _CalendarPageState extends State<CalendarPage> {
           SizedBox(height: 20),
           ElevatedButton(
             onPressed: _navigateToBookingPage,
-            child: Text('Cancella Disponibilità'),
+            child: Text('Vai alla pagina per cancellare le disponibilità'),
           ),
         ],
       ),
@@ -205,6 +225,10 @@ class _CalendarPageState extends State<CalendarPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Disponibilità salvata con successo!')),
         );
+
+        // Dopo aver salvato, ricarica la disponibilità aggiornata
+        _fetchAvailability(); // Ricarica la disponibilità aggiornata
+
       } else {
         // Analizza il corpo della risposta per errori specifici
         final responseBody = jsonDecode(response.body);

@@ -33,15 +33,14 @@ class SelectionDiscoveryPage extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (context) => UrgentBookingPage(
-                      doctorId: userId,
-                      doctorName: 'Nome Medico', // Usa un valore fittizio o modifica in base alle necessità
+                      userId: userId,
                       token: token,
                       isDoctor: isDoctor,
                     ),
                   ),
                 );
               },
-              child: const Text('Prenotazione Urgente'),
+              child: const Text('visitaMe il prima possibile'),
             ),
             ElevatedButton(
               onPressed: () {
@@ -57,7 +56,7 @@ class SelectionDiscoveryPage extends StatelessWidget {
                   ),
                 );
               },
-              child: const Text('Prenotazione Regolare'),
+              child: const Text('visitaMe programmata'),
             ),
             ElevatedButton(
               onPressed: () {

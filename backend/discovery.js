@@ -107,9 +107,9 @@ router.get('/urgentbookings', authenticateToken, async (req, res) => {
         id: row.id,
         first_name: row.first_name,
         last_name: row.last_name,
-        available_date: new Date(row.available_date).toLocaleDateString('it-IT'),
-        start_time: row.start_time.slice(0, 5), // formato HH:mm
-        end_time: row.end_time.slice(0, 5)      // formato HH:mm
+        available_date: new Date(row.available_date).toISOString().split('T')[0], // Formato 'YYYY-MM-DD'
+        start_time: row.start_time.slice(0, 5),
+        end_time: row.end_time.slice(0, 5)
       }));
 
       // Log del risultato formattato
