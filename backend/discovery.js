@@ -38,24 +38,6 @@ router.put('/bookings', authenticateToken, async (req, res) => {
 
     console.log(formattedDate);
 
-    // Decremento del contatore max_patients nella tabella availability
-    /*const updateAvailability = await pool.query(`
-      UPDATE availability
-      SET max_patients = max_patients - 1
-      WHERE user_id = $1
-      AND available_date = $2
-      AND start_time = $3
-      AND end_time = $4
-      AND max_patients > 0; -- Evita decrementi sotto lo zero
-    `, [doctorId, formattedDate, startTime, endTime]);
-
-    if (updateAvailability.rowCount === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Non è stato possibile aggiornare la disponibilità. Potrebbe essere esaurita o non trovata.'
-      });
-    }*/
-
     // Rimozione della disponibilità se max_patients è pari a 0
     const deleteAvailability = await pool.query(`
       DELETE FROM availability
@@ -182,8 +164,58 @@ router.get('/doctor/bookings', authenticateToken, async (req, res) => {
 });
 
 
-
 // Endpoint per accettare una prenotazione
+router.post('/doctor/accept-booking', authenticateToken, async (req, res) => {
+  console.log('Richiesta ricevuta per accettare una prenotazione:', req.body);
+  const { bookingId, note } = req.body;
+  
+  try {
+    const doctorId = req.user.id;
+
+    // Controlla se la prenotazione esiste e appartiene a questo medico
+    const bookingCheck = await pool.query(`
+      SELECT patient_id 
+      FROM bookings 
+      WHERE id = $1 AND doctor_id = $2 AND accepted_booking = false;
+    `, [bookingId, doctorId]);
+
+    if (bookingCheck.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Prenotazione non trovata o già accettata.'
+      });
+    }
+
+    // Ottieni l'ID del paziente
+    const patientId = bookingCheck.rows[0].patient_id;
+
+    // Aggiorna lo stato della prenotazione in bookings
+    await pool.query(`
+      UPDATE bookings
+      SET accepted_booking = true
+      WHERE id = $1;
+    `, [bookingId]);
+
+    // Inserisci nella tabella bookings_accepted
+    const insertResult = await pool.query(`
+      INSERT INTO bookings_accepted (patient_id, doctor_id, note)
+      VALUES ($1, $2, $3)
+      RETURNING *;
+    `, [patientId, doctorId, note]);
+
+    res.json({
+      success: true,
+      message: 'Prenotazione accettata con successo.',
+      acceptedBooking: insertResult.rows[0] // Ritorna i dettagli dell'inserimento
+    });
+  } catch (err) {
+    console.error('Errore durante l\'accettazione della prenotazione:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Errore durante l\'accettazione della prenotazione.'
+    });
+  }
+});
 
 
 

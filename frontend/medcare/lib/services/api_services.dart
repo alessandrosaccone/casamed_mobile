@@ -67,23 +67,6 @@ class ApiService {
     }
   }
 
-  Future<List<String>> getDoctorSpecializations(int userId, String token) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/users/$userId/specializations'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return List<String>.from(data['specializations']);
-    } else {
-      throw Exception('Failed to fetch specializations: ${response.statusCode} - ${response.body}');
-    }
-  }
-
   Future<List<Map<String, dynamic>>> getDoctors(String token) async {
     final response = await http.get(
       Uri.parse('$baseUrl/discovery'),
@@ -162,6 +145,26 @@ class ApiService {
       return json.decode(response.body);
     } else {
       throw Exception('Failed to load urgent booking');
+    }
+  }
+
+  Future<Map<String, dynamic>> acceptBooking(int bookingId, String note, String token) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/doctor/accept-booking'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'bookingId': bookingId,
+        'note': note,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to accept booking: ${response.statusCode} - ${response.body}');
     }
   }
 }

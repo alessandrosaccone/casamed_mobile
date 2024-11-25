@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'accept_booking_page.dart';
 import 'dart:convert';
 
 class ViewBookingsPage extends StatefulWidget {
@@ -90,29 +91,43 @@ class _ViewBookingsPageState extends State<ViewBookingsPage> {
         itemCount: bookings.length,
         itemBuilder: (context, index) {
           final booking = bookings[index];
+          print(booking);
           return Card(
             margin: const EdgeInsets.all(8.0),
-            child: ListTile(
-              title: Text(
-                'Paziente: ${booking['patientFirstName']} ${booking['patientLastName']}',
-              ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Data: ${booking['bookingDate']}'),
-                  Text(
-                      'Orario: ${booking['startTime']} - ${booking['endTime']}'),
-                  Text(
-                      'Sintomi: ${booking['symptomDescription']}'),
-                ],
-              ),
-              trailing: Icon(
-                booking['acceptedBooking'] == true
-                    ? Icons.check_circle
-                    : Icons.pending,
-                color: booking['acceptedBooking'] == true
-                    ? Colors.green
-                    : Colors.orange,
+            child: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        AcceptBookingPage(
+                          bookingId: booking["bookingId"],
+                          token: widget.token,
+                        ),
+                  ),
+                );
+              },
+              child: ListTile(
+                title: Text(
+                  'Paziente: ${booking['patientFirstName']} ${booking['patientLastName']}',
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Data: ${booking['bookingDate']}'),
+                    Text(
+                        'Orario: ${booking['startTime']} - ${booking['endTime']}'),
+                    Text('Sintomi: ${booking['symptomDescription']}'),
+                  ],
+                ),
+                trailing: Icon(
+                  booking['acceptedBooking'] == true
+                      ? Icons.check_circle
+                      : Icons.pending,
+                  color: booking['acceptedBooking'] == true
+                      ? Colors.green
+                      : Colors.orange,
+                ),
               ),
             ),
           );

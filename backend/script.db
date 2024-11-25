@@ -73,6 +73,15 @@ ADD COLUMN max_patients INT;  -- Numero massimo di pazienti che il medico accett
 ALTER TABLE bookings
 ADD COLUMN accepted_booking BOOLEAN DEFAULT false;
 
+CREATE TABLE bookings_accepted (
+    id SERIAL PRIMARY KEY, -- Identificativo univoco
+    patient_id INT NOT NULL, -- ID del paziente
+    doctor_id INT NOT NULL, -- ID del dottore
+    note TEXT, -- Testo inviato dal dottore
+    accepted_at TIMESTAMP DEFAULT NOW(), -- Data e ora dell'accettazione
+    FOREIGN KEY (patient_id) REFERENCES users_type_0 (id) ON DELETE CASCADE,
+    FOREIGN KEY (doctor_id) REFERENCES users_type_1 (id) ON DELETE CASCADE
+);
 
 
 
