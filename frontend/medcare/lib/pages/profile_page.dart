@@ -1,9 +1,8 @@
-// profile_page.dart
 import 'package:flutter/material.dart';
 import 'selection_discovery_page.dart';
 import '../services/api_services.dart';
-import 'calendar_page.dart'; // Import della pagina del calendario
-
+import 'calendar_page.dart';
+import 'viewBookings_page.dart'; // Modifica il nome del file
 
 class ProfilePage extends StatefulWidget {
   final int userId;
@@ -24,7 +23,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Map<String, dynamic>? userProfile;
   String message = '';
   bool isDoctor = false;
-  int _selectedIndex = 0; // Variabile per gestire la pagina selezionata
+  int _selectedIndex = 0;
 
   @override
   void initState() {
@@ -66,26 +65,23 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  // Gestione della navigazione in base alla selezione della BottomNavigationBar
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
   }
 
-  // Creiamo un metodo per selezionare quale pagina mostrare
   Widget _buildPage() {
     switch (_selectedIndex) {
       case 0:
-        return _buildProfile(); // Mostra il profilo
+        return _buildProfile();
       case 1:
         return SelectionDiscoveryPage(
           apiService: apiService,
           userId: widget.userId,
           token: widget.token,
           isDoctor: isDoctor,
-        ); // Passa apiService e token a DiscoveryPage
-    // Mostra la pagina "Prova"
+        );
       default:
         return _buildProfile();
     }
@@ -102,12 +98,10 @@ class _ProfilePageState extends State<ProfilePage> {
           Text('Email: ${userProfile!['userData']['email']}'),
           Text('Nome: ${userProfile!['userData']['first_name'] ?? 'N/A'}'),
           Text('Cognome: ${userProfile!['userData']['last_name'] ?? 'N/A'}'),
-
-          // Visualizza i dati aggiuntivi se non sono nulli
           ..._buildAdditionalFields(userProfile!['userData']),
+          const SizedBox(height: 20),
 
-          const SizedBox(height: 20), // Spazio tra i contenuti
-
+          // Bottone per il calendario
           if (isDoctor)
             ElevatedButton(
               onPressed: () {
@@ -124,7 +118,23 @@ class _ProfilePageState extends State<ProfilePage> {
               child: const Text('Vai al Calendario'),
             ),
 
-          ],
+          // Nuovo bottone per visualizzare la lista delle prenotazioni
+          if (isDoctor)
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ViewBookingsPage( // Cambiato da AcceptBookingsPage a ViewBookingsPage
+                      userId: widget.userId,
+                      token: widget.token,
+                    ),
+                  ),
+                );
+              },
+              child: const Text('Visualizza la lista delle prenotazioni'),
+            ),
+        ],
       ),
     );
   }
@@ -134,12 +144,10 @@ class _ProfilePageState extends State<ProfilePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _selectedIndex == 0 ? 'Profilo' : 'Scopri i Medici', // Cambia il titolo in base alla selezione
+          _selectedIndex == 0 ? 'Profilo' : 'Scopri i Medici',
         ),
       ),
-      body: _buildPage(), // Mostra la pagina corretta
-
-      // Mostra la BottomNavigationBar solo se l'utente non è un medico
+      body: _buildPage(),
       bottomNavigationBar: !isDoctor
           ? BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
@@ -152,10 +160,10 @@ class _ProfilePageState extends State<ProfilePage> {
             label: 'Discovery',
           ),
         ],
-        currentIndex: _selectedIndex, // Pagina selezionata
-        onTap: _onItemTapped, // Cambia pagina al tap
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
       )
-          : null, // Se l'utente è un medico, la barra non viene mostrata
+          : null,
     );
   }
 
@@ -175,8 +183,8 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     if (userData['professional_insurance_number'] != null) {
-      fields.add(
-          Text("Numero d'assicurazione professionale: ${userData['professional_insurance_number']}"));
+      fields.add(Text(
+          "Numero d'assicurazione professionale: ${userData['professional_insurance_number']}"));
     }
 
     if (userData['iban'] != null) {
@@ -188,11 +196,7 @@ class _ProfilePageState extends State<ProfilePage> {
           "Identificativo dell'iscrizione all'ordine professionale: ${userData['professional_association_registration']}"));
     }
 
-    return fields; // Returns the list of non-null widgets
+    return fields;
   }
 }
-
-
-
-
 

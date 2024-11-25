@@ -129,6 +129,61 @@ router.get('/urgentbookings', authenticateToken, async (req, res) => {
 
 
 
+// Endpoint per ottenere tutte le prenotazioni di un medico
+router.get('/doctor/bookings', authenticateToken, async (req, res) => {
+  try {
+    // Ottieni l'ID del medico dall'utente autenticato
+    const doctorId = req.user.id;
+
+    // Verifica che l'utente sia un medico
+    const doctorCheck = await pool.query(`
+      SELECT 1 FROM users_type_1 WHERE id = $1;
+    `, [doctorId]);
+
+    if (doctorCheck.rowCount === 0) {
+      return res.status(403).json({ success: false, message: 'Accesso negato. Utente non autorizzato.' });
+    }
+
+    // Recupera le prenotazioni ordinate per ID (decrescente)
+    const result = await pool.query(`
+      SELECT 
+        b.id AS booking_id,
+        u.first_name AS patient_first_name,
+        u.last_name AS patient_last_name,
+        b.booking_date,
+        b.start_time,
+        b.end_time,
+        b.symptom_description,
+        b.accepted_booking
+      FROM bookings b
+      JOIN users_type_0 u ON b.patient_id = u.id
+      WHERE b.doctor_id = $1
+      ORDER BY b.id ASC; -- Ordinamento basato sull'ID in ordine decrescente
+    `, [doctorId]);
+
+    // Formatta i risultati
+    const formattedBookings = result.rows.map(row => ({
+      bookingId: row.booking_id,
+      patientFirstName: row.patient_first_name,
+      patientLastName: row.patient_last_name,
+      bookingDate: new Date(row.booking_date).toISOString().split('T')[0], // yyyy-mm-dd
+      startTime: row.start_time.slice(0, 5), // HH:MM
+      endTime: row.end_time.slice(0, 5),
+      symptomDescription: row.symptom_description,
+      acceptedBooking: row.accepted_booking
+    }));
+
+    // Restituisci i risultati
+    res.json({ success: true, bookings: formattedBookings });
+  } catch (err) {
+    console.error('Errore durante il recupero delle prenotazioni:', err);
+    res.status(500).json({ success: false, message: 'Errore durante il recupero delle prenotazioni.' });
+  }
+});
+
+
+
+// Endpoint per accettare una prenotazione
 
 
 
