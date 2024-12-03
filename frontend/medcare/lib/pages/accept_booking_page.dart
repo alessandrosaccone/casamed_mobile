@@ -36,16 +36,16 @@ class AcceptBookingPage extends StatelessWidget {
               controller: controller,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
-                labelText: "Inserisci l'orario",
+                labelText: "Inserisci l'orario (es. 10:00-11:00)",
               ),
-              maxLines: 3,
+              maxLines: 1,
             ),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
-                String comment = controller.text;
+                String note = controller.text.trim();
 
-                if (comment.isEmpty) {
+                if (note.isEmpty) {
                   // Mostra un messaggio di errore se il campo è vuoto
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -67,7 +67,7 @@ class AcceptBookingPage extends StatelessWidget {
                   );
 
                   // Chiamata all'API
-                  final response = await apiService.acceptBooking(bookingId, comment, token);
+                  final response = await apiService.acceptBooking(bookingId, note, token);
 
                   // Chiudi il dialog di caricamento
                   Navigator.pop(context);
@@ -89,7 +89,7 @@ class AcceptBookingPage extends StatelessWidget {
                   // Mostra un messaggio di errore
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Errore: $e'),
+                      content: Text('Errore: ${e.toString()}'),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -97,10 +97,14 @@ class AcceptBookingPage extends StatelessWidget {
               },
               child: const Text('Accetta Prenotazione'),
             ),
+            const SizedBox(height: 10),
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context); // Torna indietro
               },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.grey,
+              ),
               child: const Text('Annulla'),
             ),
           ],

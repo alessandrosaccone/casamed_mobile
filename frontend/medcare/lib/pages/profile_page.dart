@@ -3,6 +3,9 @@ import 'selection_discovery_page.dart';
 import '../services/api_services.dart';
 import 'calendar_page.dart';
 import 'viewBookings_page.dart';
+import 'viewBookings_page.dart'; // Modifica il nome del file
+import 'viewBookings_patient_page.dart'; // Importa la nuova pagina per il paziente
+
 
 class ProfilePage extends StatefulWidget {
   final int userId;
@@ -83,7 +86,12 @@ class _ProfilePageState extends State<ProfilePage> {
           userId: widget.userId,
           token: widget.token,
           isDoctor: isDoctor,
-        ); // Discovery page
+        );
+      case 2:
+        return ViewBookingsPatientPage( // Naviga alla nuova pagina
+          userId: widget.userId,
+          token: widget.token,
+        );
       default:
         return _buildProfile(); // Default case, just in case
     }
@@ -202,7 +210,7 @@ class _ProfilePageState extends State<ProfilePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _selectedIndex == 0 ? 'Profilo' : 'Scopri i Medici',
+          _selectedIndex == 0 ? 'Profilo' : (_selectedIndex == 1 ? 'Scopri i Medici' : 'Le tue prenotazioni'),
         ),
       ),
       body: _buildPage(),
@@ -218,6 +226,10 @@ class _ProfilePageState extends State<ProfilePage> {
           BottomNavigationBarItem(
             icon: Icon(Icons.auto_fix_high),
             label: 'Discovery',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.book_online),
+            label: 'Le tue prenotazioni',
           ),
         ],
         currentIndex: _selectedIndex,

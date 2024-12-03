@@ -140,7 +140,7 @@ router.get('/doctor/bookings', authenticateToken, async (req, res) => {
       FROM bookings b
       JOIN users_type_0 u ON b.patient_id = u.id
       WHERE b.doctor_id = $1
-      ORDER BY b.id ASC; -- Ordinamento basato sull'ID in ordine decrescente
+      ORDER BY b.id ASC; -- Ordinamento basato sull'ID in ordine crescente
     `, [doctorId]);
 
     // Formatta i risultati
@@ -163,57 +163,93 @@ router.get('/doctor/bookings', authenticateToken, async (req, res) => {
   }
 });
 
-
-// Endpoint per accettare una prenotazione
-router.post('/doctor/accept-booking', authenticateToken, async (req, res) => {
-  console.log('Richiesta ricevuta per accettare una prenotazione:', req.body);
-  const { bookingId, note } = req.body;
-  
+// Endpoint per ottenere tutte le prenotazioni di un paziente
+router.get('/patient/bookings', authenticateToken, async (req, res) => {
   try {
-    const doctorId = req.user.id;
+    // Ottieni l'ID del paziente dall'utente autenticato
+    const patientId = req.user.id;
 
-    // Controlla se la prenotazione esiste e appartiene a questo medico
-    const bookingCheck = await pool.query(`
-      SELECT patient_id 
-      FROM bookings 
-      WHERE id = $1 AND doctor_id = $2 AND accepted_booking = false;
-    `, [bookingId, doctorId]);
+    // Verifica che l'utente sia un paziente
+    const patientCheck = await pool.query(`
+      SELECT 1 FROM users_type_0 WHERE id = $1;
+    `, [patientId]);
 
-    if (bookingCheck.rowCount === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Prenotazione non trovata o già accettata.'
-      });
+    if (patientCheck.rowCount === 0) {
+      return res.status(403).json({ success: false, message: 'Accesso negato. Utente non autorizzato.' });
     }
 
-    // Ottieni l'ID del paziente
-    const patientId = bookingCheck.rows[0].patient_id;
+    // Recupera le prenotazioni del paziente ordinate per ID (decrescente)
+    const result = await pool.query(`
+      SELECT 
+        b.id AS booking_id,
+        u.first_name AS doctor_first_name,
+        u.last_name AS doctor_last_name,
+        b.booking_date,
+        b.start_time,
+        b.end_time,
+        b.symptom_description,
+        b.accepted_booking
+      FROM bookings b
+      JOIN users_type_1 u ON b.doctor_id = u.id
+      WHERE b.patient_id = $1
+      ORDER BY b.id ASC; -- Ordinamento basato sull'ID in ordine decrescente
+    `, [patientId]);
 
-    // Aggiorna lo stato della prenotazione in bookings
-    await pool.query(`
-      UPDATE bookings
-      SET accepted_booking = true
-      WHERE id = $1;
-    `, [bookingId]);
+    // Formatta i risultati
+    const formattedBookings = result.rows.map(row => ({
+      bookingId: row.booking_id,
+      doctorFirstName: row.doctor_first_name,
+      doctorLastName: row.doctor_last_name,
+      bookingDate: new Date(row.booking_date).toISOString().split('T')[0], // yyyy-mm-dd
+      startTime: row.start_time.slice(0, 5), // HH:MM
+      endTime: row.end_time.slice(0, 5),
+      symptomDescription: row.symptom_description,
+      acceptedBooking: row.accepted_booking
+    }));
 
-    // Inserisci nella tabella bookings_accepted
-    const insertResult = await pool.query(`
-      INSERT INTO bookings_accepted (patient_id, doctor_id, note)
-      VALUES ($1, $2, $3)
-      RETURNING *;
-    `, [patientId, doctorId, note]);
-
-    res.json({
-      success: true,
-      message: 'Prenotazione accettata con successo.',
-      acceptedBooking: insertResult.rows[0] // Ritorna i dettagli dell'inserimento
-    });
+    // Restituisci i risultati
+    res.json({ success: true, bookings: formattedBookings });
   } catch (err) {
-    console.error('Errore durante l\'accettazione della prenotazione:', err);
-    res.status(500).json({
-      success: false,
-      message: 'Errore durante l\'accettazione della prenotazione.'
-    });
+    console.error('Errore durante il recupero delle prenotazioni del paziente:', err);
+    res.status(500).json({ success: false, message: 'Errore durante il recupero delle prenotazioni.' });
+  }
+});
+
+
+
+// Endpoint per accettare una prenotazione
+router.put('/bookings/accept/:id', async (req, res) => {
+  const bookingId = req.params.id; // ID della prenotazione da accettare
+  const { note } = req.body;      // Nota con l'orario scelto dal medico
+
+  try {
+      // Recupera la prenotazione e controlla l'esistenza
+      const result = await pool.query(
+          'SELECT accepted_booking FROM bookings WHERE id = $1',
+          [bookingId]
+      );
+
+      if (result.rows.length === 0) {
+          return res.status(404).json({ error: 'Prenotazione non trovata.' });
+      }
+
+      // Controlla se la prenotazione è già stata accettata
+      if (result.rows[0].accepted_booking) {
+          return res.status(400).json({ error: 'La prenotazione è già stata accettata.' });
+      }
+
+      // Aggiorna la prenotazione con `accepted_booking` e `note`
+      await pool.query(
+          `UPDATE bookings 
+           SET accepted_booking = true, note = $1 
+           WHERE id = $2`,
+          [note, bookingId]
+      );
+
+      res.status(200).json({ message: 'Prenotazione accettata con successo.' });
+  } catch (error) {
+      console.error('Errore nell\'accettazione della prenotazione:', error);
+      res.status(500).json({ error: 'Errore del server.' });
   }
 });
 
