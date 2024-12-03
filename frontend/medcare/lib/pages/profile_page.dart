@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'selection_discovery_page.dart';
 import '../services/api_services.dart';
 import 'calendar_page.dart';
-import 'viewBookings_page.dart'; // Modifica il nome del file
+import 'viewBookings_page.dart';
 
 class ProfilePage extends StatefulWidget {
   final int userId;
@@ -72,38 +72,83 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildPage() {
+    print(
+        "Selected Index: $_selectedIndex"); // Debug log to check if the index is updating
     switch (_selectedIndex) {
       case 0:
-        return _buildProfile();
+        return _buildProfile(); // Profile page
       case 1:
         return SelectionDiscoveryPage(
           apiService: apiService,
           userId: widget.userId,
           token: widget.token,
           isDoctor: isDoctor,
-        );
+        ); // Discovery page
       default:
-        return _buildProfile();
+        return _buildProfile(); // Default case, just in case
     }
   }
 
   Widget _buildProfile() {
-    return Center(
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
       child: userProfile == null
-          ? Text(message)
+          ? Center(
+        child: Text(
+          message,
+          style: TextStyle(fontSize: 18, color: Colors.red),
+        ),
+      )
           : Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('User ID: ${userProfile!['userData']['id']}'),
-          Text('Email: ${userProfile!['userData']['email']}'),
-          Text('Nome: ${userProfile!['userData']['first_name'] ?? 'N/A'}'),
-          Text('Cognome: ${userProfile!['userData']['last_name'] ?? 'N/A'}'),
-          ..._buildAdditionalFields(userProfile!['userData']),
-          const SizedBox(height: 20),
-
-          // Bottone per il calendario
-          if (isDoctor)
+          Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 5,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  Text(
+                    'Profilo Utente',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleLarge
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  ListTile(
+                    title: Text(
+                      'Email: ${userProfile!['userData']['email']}',
+                    ),
+                  ),
+                  ListTile(
+                    title: Text(
+                      'Nome: ${userProfile!['userData']['first_name'] ?? 'N/A'}',
+                    ),
+                  ),
+                  ListTile(
+                    title: Text(
+                      'Cognome: ${userProfile!['userData']['last_name'] ?? 'N/A'}',
+                    ),
+                  ),
+                  ..._buildAdditionalFields(userProfile!['userData']),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          ),
+          if (isDoctor) ...[
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                minimumSize: Size(double.infinity, 50),
+                backgroundColor: Colors.blueAccent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
               onPressed: () {
                 Navigator.push(
                   context,
@@ -115,29 +160,42 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 );
               },
-              child: const Text('Vai al Calendario'),
+              child: const Text(
+                'Vai al Calendario',
+                style: TextStyle(fontSize: 18, color: Colors.white),
+              ),
             ),
-
-          // Nuovo bottone per visualizzare la lista delle prenotazioni
-          if (isDoctor)
+            const SizedBox(height: 16),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                minimumSize: Size(double.infinity, 50),
+                backgroundColor: Colors.green,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
               onPressed: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => ViewBookingsPage( // Cambiato da AcceptBookingsPage a ViewBookingsPage
+                    builder: (context) => ViewBookingsPage(
                       userId: widget.userId,
                       token: widget.token,
                     ),
                   ),
                 );
               },
-              child: const Text('Visualizza la lista delle prenotazioni'),
+              child: const Text(
+                'Visualizza la lista delle prenotazioni',
+                style: TextStyle(fontSize: 18, color: Colors.white),
+              ),
             ),
+          ],
         ],
       ),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -148,8 +206,10 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
       ),
       body: _buildPage(),
-      bottomNavigationBar: !isDoctor
-          ? BottomNavigationBar(
+      // Modify the bottom navigation bar display based on the `isDoctor` flag
+      bottomNavigationBar: isDoctor
+          ? null // Hide BottomNavigationBar if the user is a doctor
+          : BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
@@ -162,41 +222,51 @@ class _ProfilePageState extends State<ProfilePage> {
         ],
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-      )
-          : null,
+      ),
     );
   }
+
+
 
   List<Widget> _buildAdditionalFields(Map<String, dynamic> userData) {
     List<Widget> fields = [];
 
-    if (userData['birth_date'] != null) {
-      fields.add(Text('Data di nascita: ${userData['birth_date']}'));
-    }
+    /*if (userData['birth_date'] != null) {
+      fields.add(ListTile(
+        title: Text('Data di nascita: ${userData['birth_date']}'),
+      ));
+    }*/
 
     if (userData['address'] != null) {
-      fields.add(Text('Indirizzo: ${userData['address']}'));
+      fields.add(ListTile(
+        title: Text('Indirizzo: ${userData['address']}'),
+      ));
     }
 
     if (userData['vat_number'] != null) {
-      fields.add(Text('Partita IVA (VAT numer): ${userData['vat_number']}'));
+      fields.add(ListTile(
+        title: Text('Partita IVA (VAT number): ${userData['vat_number']}'),
+      ));
     }
 
     if (userData['professional_insurance_number'] != null) {
-      fields.add(Text(
-          "Numero d'assicurazione professionale: ${userData['professional_insurance_number']}"));
+      fields.add(ListTile(
+        title: Text("Numero d'assicurazione professionale: ${userData['professional_insurance_number']}"),
+      ));
     }
 
     if (userData['iban'] != null) {
-      fields.add(Text('IBAN: ${userData['iban']}'));
+      fields.add(ListTile(
+        title: Text('IBAN: ${userData['iban']}'),
+      ));
     }
 
     if (userData['professional_association_registration'] != null) {
-      fields.add(Text(
-          "Identificativo dell'iscrizione all'ordine professionale: ${userData['professional_association_registration']}"));
+      fields.add(ListTile(
+        title: Text("Identificativo dell'iscrizione all'ordine professionale: ${userData['professional_association_registration']}"),
+      ));
     }
 
     return fields;
   }
 }
-

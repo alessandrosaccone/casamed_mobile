@@ -18,7 +18,8 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    apiService = ApiService(baseUrl: 'http://10.0.2.2:3000'); // Use 10.0.2.2 for Android Emulator
+    apiService = ApiService(
+        baseUrl: 'http://10.0.2.2:3000'); // Use 10.0.2.2 for Android Emulator
   }
 
   void navigateToRegister() {
@@ -38,25 +39,29 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('User Management'),
-      ),
+      appBar: AppBar(title: const Text('User Management')),
       body: Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            //Text(message, style: const TextStyle(color: Colors.red)),
-            ElevatedButton(
-              onPressed: navigateToRegister,
-              child: const Text('Registrati'),
-            ),
-            ElevatedButton(
-              onPressed: navigateToLogin,
-              child: const Text('Login'),
-            ),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildButton('Registrati', Colors.white54, navigateToRegister),
+            const SizedBox(height: 16),
+            _buildButton('Login', Colors.white54, navigateToLogin),
           ],
         ),
       ),
     );
   }
+
+  Widget _buildButton(String text, Color color, VoidCallback onPressed) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        minimumSize: const Size(200, 50),
+      ),
+      child: Text(text, style: const TextStyle(color: Colors.black, fontSize: 18)),
+    );
+  }
+
 }

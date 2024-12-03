@@ -83,22 +83,35 @@ class _LoginPageState extends State<LoginPage> {
               decoration: const InputDecoration(labelText: 'Password'),
               obscureText: true,
             ),
+            const Spacer(), // Push the button to the bottom
             ElevatedButton(
               onPressed: login,
-              child: const Text('Login'),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 50), // Full width, height 50
+                backgroundColor: Colors.white54,
+                elevation: 2,
+              ),
+              child: const Text(
+                'Login',
+                style: TextStyle(color: Colors.black, fontSize: 18),
+              ),
             ),
+            const SizedBox(height: 20), // Spacing for the bottom
             Text(
               message,
               style: const TextStyle(color: Colors.red),
             ),
-            const SizedBox(height: 20),
             TextButton(
               onPressed: navigateToPasswordResetRequest,
-              child: const Text('Password dimenticata?'),
+              child: const Text(
+                'Password dimenticata?',
+                style: TextStyle(color: Colors.black),
+              ),
             ),
           ],
         ),
       ),
     );
   }
+
 }
