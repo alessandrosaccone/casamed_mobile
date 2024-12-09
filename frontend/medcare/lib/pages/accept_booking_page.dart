@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_services.dart'; // Assicurati di avere il percorso corretto del servizio API
+import 'viewBookings_page.dart';
 
 class AcceptBookingPage extends StatelessWidget {
   final int bookingId;
@@ -46,7 +47,7 @@ class AcceptBookingPage extends StatelessWidget {
                 String note = controller.text.trim();
 
                 if (note.isEmpty) {
-                  // Mostra un messaggio di errore se il campo è vuoto
+                  // Show an error message if the field is empty
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Per favore, inserisci un orario.'),
@@ -57,7 +58,7 @@ class AcceptBookingPage extends StatelessWidget {
                 }
 
                 try {
-                  // Mostra un indicatore di caricamento
+                  // Show a loading indicator
                   showDialog(
                     context: context,
                     barrierDismissible: false,
@@ -66,13 +67,13 @@ class AcceptBookingPage extends StatelessWidget {
                     ),
                   );
 
-                  // Chiamata all'API
+                  // API call
                   final response = await apiService.acceptBooking(bookingId, note, token);
 
-                  // Chiudi il dialog di caricamento
+                  // Close the loading dialog
                   Navigator.pop(context);
 
-                  // Mostra un messaggio di successo
+                  // Show a success message
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Prenotazione accettata: ${response['message']}'),
@@ -80,13 +81,18 @@ class AcceptBookingPage extends StatelessWidget {
                     ),
                   );
 
-                  // Torna alla schermata precedente
-                  Navigator.pop(context);
+                  // Navigate to the ViewBookingsPage
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ViewBookingsPage(token: token),
+                    ),
+                  );
                 } catch (e) {
-                  // Chiudi il dialog di caricamento
+                  // Close the loading dialog
                   Navigator.pop(context);
 
-                  // Mostra un messaggio di errore
+                  // Show an error message
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Errore: ${e.toString()}'),
@@ -97,6 +103,7 @@ class AcceptBookingPage extends StatelessWidget {
               },
               child: const Text('Accetta Prenotazione'),
             ),
+
             const SizedBox(height: 10),
             ElevatedButton(
               onPressed: () {
