@@ -32,6 +32,9 @@ class _BookingPageState extends State<BookingPage> {
   DateTime _focusedDay = DateTime.now();
   DateTime _selectedDay = DateTime.now();
 
+  // Track booked events
+  Set<String> _bookedEvents = {};
+
   @override
   void initState() {
     super.initState();
@@ -54,26 +57,25 @@ class _BookingPageState extends State<BookingPage> {
           endTime,
         );
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Disponibilità eliminata con successo!')),
+          const SnackBar(content: Text('Disponibilità eliminata con successo!')),
         );
 
-        // Ricarica la disponibilità
-        await _loadDoctorAvailability(); // Carica le disponibilità aggiornate
+        // Reload availability
+        await _loadDoctorAvailability();
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Errore durante l\'eliminazione della disponibilità.')),
+          const SnackBar(content: Text('Errore durante l\'eliminazione della disponibilità.')),
         );
       }
     }
   }
-
 
   Future<List<Map<String, dynamic>>> _loadDoctorAvailability() async {
     final availabilities = await ApiService(baseUrl: 'http://10.0.2.2:3000')
         .getDoctorAvailability(widget.doctorId, widget.token);
 
     setState(() {
-      _events.clear(); // Pulisci gli eventi esistenti
+      _events.clear();
       for (var availability in availabilities) {
         DateTime fullDateTime = DateTime.parse(availability['date']).toLocal();
         DateTime date = _normalizeDate(fullDateTime);
@@ -88,12 +90,14 @@ class _BookingPageState extends State<BookingPage> {
             'end_time': availability['end_time'],
           });
         } else {
-          _events[date] = [ {
-            'timeRange': timeRange,
-            'date': availability['date'],
-            'start_time': availability['start_time'],
-            'end_time': availability['end_time'],
-          }];
+          _events[date] = [
+            {
+              'timeRange': timeRange,
+              'date': availability['date'],
+              'start_time': availability['start_time'],
+              'end_time': availability['end_time'],
+            }
+          ];
         }
       }
     });
@@ -105,7 +109,7 @@ class _BookingPageState extends State<BookingPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Prenotazioni'),
+        title: const Text('Prenotazioni'),
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _doctorAvailability,
@@ -153,6 +157,8 @@ class _BookingPageState extends State<BookingPage> {
       itemCount: dayEvents.length,
       itemBuilder: (context, index) {
         final event = dayEvents[index];
+        final eventId = '${event['date']}_${event['start_time']}_${event['end_time']}';
+
         return ListTile(
           title: Text(event['timeRange']),
           trailing: Row(
@@ -164,38 +170,42 @@ class _BookingPageState extends State<BookingPage> {
                   onPressed: () async {
                     final confirm = await showDialog(
                       context: context,
-                      builder: (context) =>
-                          AlertDialog(
-                            title: const Text('Conferma eliminazione'),
-                            content: const Text(
-                                'Sei sicuro di voler eliminare questa disponibilità?'),
-                            actions: [
-                              TextButton(
-                                onPressed: () =>
-                                    Navigator.pop(context, false),
-                                child: const Text('Annulla'),
-                              ),
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, true),
-                                child: const Text('Elimina'),
-                              ),
-                            ],
+                      builder: (context) => AlertDialog(
+                        title: const Text('Conferma eliminazione'),
+                        content: const Text('Sei sicuro di voler eliminare questa disponibilità?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Annulla'),
                           ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('Elimina'),
+                          ),
+                        ],
+                      ),
                     );
 
                     if (confirm) {
                       await _deleteAvailability(
-                          event['date'], event['start_time'],
-                          event['end_time']);
+                        event['date'],
+                        event['start_time'],
+                        event['end_time'],
+                      );
                       await _loadDoctorAvailability();
                     }
                   },
                 ),
-              if (!widget.isDoctor)
+              if (!widget.isDoctor && !_bookedEvents.contains(eventId))
                 IconButton(
                   icon: const Icon(Icons.add, color: Colors.green),
                   onPressed: () {
-                    // Naviga a save_booking.dart
+                    // Add the event to booked events
+                    setState(() {
+                      _bookedEvents.add(eventId);
+                    });
+
+                    // Navigate to save_booking.dart
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -218,4 +228,3 @@ class _BookingPageState extends State<BookingPage> {
     );
   }
 }
-
