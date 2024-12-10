@@ -4,12 +4,12 @@ import 'accept_booking_page.dart';
 import 'dart:convert';
 
 class ViewBookingsPage extends StatefulWidget {
-  final int userId;
+  //final int userId;
   final String token;
 
   const ViewBookingsPage({
     Key? key,
-    required this.userId,
+    //required this.userId,
     required this.token,
   }) : super(key: key);
 

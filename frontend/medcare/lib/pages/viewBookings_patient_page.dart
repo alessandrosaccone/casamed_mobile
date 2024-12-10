@@ -70,9 +70,7 @@ class _ViewBookingsPatientPageState extends State<ViewBookingsPatientPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Le tue prenotazioni'),
-      ),
+
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : errorMessage != null

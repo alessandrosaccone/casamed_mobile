@@ -160,7 +160,9 @@ router.get('/urgentbookings', authenticateToken, async (req, res) => {
         id: row.id,
         first_name: row.first_name,
         last_name: row.last_name,
-        available_date: new Date(row.available_date).toISOString().split('T')[0], // Formato 'YYYY-MM-DD'
+        available_date: new Date(new Date(row.available_date).setDate(new Date(row.available_date).getDate() + 1))
+        .toISOString()
+        .split('T')[0],
         start_time: row.start_time.slice(0, 5),
         end_time: row.end_time.slice(0, 5)
       }));
@@ -211,7 +213,7 @@ router.get('/doctor/bookings', authenticateToken, async (req, res) => {
       FROM bookings b
       JOIN users_type_0 u ON b.patient_id = u.id
       WHERE b.doctor_id = $1
-      ORDER BY b.id ASC; -- Ordinamento basato sull'ID in ordine crescente
+      ORDER BY b.id DESC; -- Ordinamento basato sull'ID in ordine crescente
     `, [doctorId]);
 
     // Formatta i risultati
@@ -263,7 +265,7 @@ router.get('/patient/bookings', authenticateToken, async (req, res) => {
       FROM bookings b
       JOIN users_type_1 u ON b.doctor_id = u.id
       WHERE b.patient_id = $1
-      ORDER BY b.id ASC; -- Ordinamento basato sull'ID in ordine decrescente
+      ORDER BY b.id DESC; -- Ordinamento basato sull'ID in ordine decrescente
     `, [patientId]);
 
     // Formatta i risultati

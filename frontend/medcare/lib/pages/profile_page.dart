@@ -187,7 +187,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => ViewBookingsPage(
-                      userId: widget.userId,
+                      //userId: widget.userId,
                       token: widget.token,
                     ),
                   ),
