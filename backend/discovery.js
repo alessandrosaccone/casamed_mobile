@@ -17,7 +17,7 @@ router.get('/discovery', authenticateToken, async (req, res) => {
   }
 });
 
-router.put('/bookings', authenticateToken, async (req, res) => {
+/*router.put('/bookings', authenticateToken, async (req, res) => {
   const { doctorId, patientId, bookingDate, startTime, endTime, symptomDescription} = req.body;
   try {
     if (!doctorId || !patientId || !bookingDate || !startTime || !endTime || !symptomDescription) {
@@ -62,7 +62,78 @@ router.put('/bookings', authenticateToken, async (req, res) => {
       res.status(500).json({ success: false, message: 'Errore durante la creazione della prenotazione.' });
     }
   }
+});*/
+
+
+router.put('/bookings', authenticateToken, async (req, res) => {
+  const { doctorId, patientId, bookingDate, startTime, endTime, symptomDescription } = req.body;
+
+  try {
+    // Verifica che tutti i campi necessari siano presenti
+    if (!doctorId || !patientId || !bookingDate || !startTime || !endTime || !symptomDescription) {
+      return res.status(400).json({ success: false, message: 'Dati mancanti per la prenotazione.' });
+    }
+
+    // Inserimento della prenotazione nel database
+    const result = await pool.query(`
+      INSERT INTO bookings (doctor_id, patient_id, booking_date, start_time, end_time, symptom_description)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *;
+    `, [doctorId, patientId, bookingDate, startTime, endTime, symptomDescription]);
+
+    // Converte la data per estrarre solo la parte della data (anno-mese-giorno)
+    const date = new Date(bookingDate);
+    const formattedDate = date.toISOString().split('T')[0]; // '2024-11-27'
+
+    console.log(formattedDate);
+
+    // Decremento del campo max_patients nella tabella availability
+    const updateAvailability = await pool.query(`
+      UPDATE availability
+      SET max_patients = max_patients - 1
+      WHERE user_id = $1
+      AND available_date = $2
+      AND start_time = $3
+      AND end_time = $4
+      AND max_patients > 0
+      RETURNING *;
+    `, [doctorId, formattedDate, startTime, endTime]);
+
+
+    if (updateAvailability.rowCount > 0) {
+      console.log('Disponibilità aggiornata con successo.');
+    } else {
+      console.log('Nessuna disponibilità trovata da aggiornare o max_patients già a 0.');
+    }
+
+    // Rimozione della disponibilità se max_patients è pari a 0
+    const deleteAvailability = await pool.query(`
+      DELETE FROM availability
+      WHERE user_id = $1
+      AND available_date = $2
+      AND start_time = $3
+      AND end_time = $4
+      AND max_patients = 0;
+    `, [doctorId, formattedDate, startTime, endTime]);
+
+
+    if (deleteAvailability.rowCount > 0) {
+      console.log('Disponibilità eliminata con successo');
+    }
+
+    // Risposta con successo e la prenotazione creata
+    res.json({ success: true, booking: result.rows[0] });
+  } catch (err) {
+    console.error('Errore durante la creazione della prenotazione:', err);
+
+    if (err.code === '23505') { // Violazione di unicità
+      res.status(409).json({ success: false, message: 'La prenotazione esiste già per questo orario.' });
+    } else {
+      res.status(500).json({ success: false, message: 'Errore durante la creazione della prenotazione.' });
+    }
+  }
 });
+
 
 
 
