@@ -148,57 +148,6 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ),
           ),
-          if (isDoctor) ...[
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                minimumSize: Size(double.infinity, 50),
-                backgroundColor: Colors.blueAccent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CalendarPage(
-                      userId: widget.userId,
-                      token: widget.token,
-                    ),
-                  ),
-                );
-              },
-              child: const Text(
-                'Vai al Calendario',
-                style: TextStyle(fontSize: 18, color: Colors.white),
-              ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                minimumSize: Size(double.infinity, 50),
-                backgroundColor: Colors.green,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ViewBookingsPage(
-                      //userId: widget.userId,
-                      token: widget.token,
-                    ),
-                  ),
-                );
-              },
-              child: const Text(
-                'Visualizza la lista delle prenotazioni',
-                style: TextStyle(fontSize: 18, color: Colors.white),
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -210,15 +159,28 @@ class _ProfilePageState extends State<ProfilePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _selectedIndex == 0 ? 'Profilo' : (_selectedIndex == 1 ? 'Scopri i Medici' : 'Le tue prenotazioni'),
+          _selectedIndex == 0
+              ? 'Profilo'
+              : (_selectedIndex == 1
+              ? (isDoctor ? 'Calendario' : 'Scopri i Medici')
+              : 'Prenotazioni'),
         ),
       ),
       body: _buildPage(),
-      // Modify the bottom navigation bar display based on the `isDoctor` flag
-      bottomNavigationBar: isDoctor
-          ? null // Hide BottomNavigationBar if the user is a doctor
-          : BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
+      // Conditionally display BottomNavigationBar for doctor and non-doctor users
+      bottomNavigationBar: BottomNavigationBar(
+        items: isDoctor
+            ? const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today),
+            label: 'Calendario',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.book_online),
+            label: 'Prenotazioni',
+          ),
+        ]
+            : const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
             label: 'Profilo',
@@ -233,10 +195,41 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ],
         currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
+        onTap: (index) {
+          if (isDoctor) {
+            // Navigate to the appropriate page for doctors
+            switch (index) {
+              case 0:
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CalendarPage(
+                      userId: widget.userId,
+                      token: widget.token,
+                    ),
+                  ),
+                );
+                break;
+              case 1:
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ViewBookingsPage(
+                      token: widget.token,
+                    ),
+                  ),
+                );
+                break;
+            }
+          } else {
+            // Update the selected index for non-doctor users
+            _onItemTapped(index);
+          }
+        },
       ),
     );
   }
+
 
 
 

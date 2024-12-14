@@ -85,7 +85,8 @@ class AcceptBookingPage extends StatelessWidget {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => ViewBookingsPage(token: token),
+                      builder: (context) => ViewBookingsPage(
+                          token: token),
                     ),
                   );
                 } catch (e) {
