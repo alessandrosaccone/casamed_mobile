@@ -50,6 +50,14 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
+    if (_addressController.text.isEmpty) {
+      setState(() {
+        message = 'L\'indirizzo è obbligatorio.';
+        messageColor = Colors.red; // Colore per errore
+      });
+      return;
+    }
+
     try {
       final requestBody = {
         "email": _emailController.text,
@@ -58,11 +66,11 @@ class _RegisterPageState extends State<RegisterPage> {
         "first_name": _firstNameController.text,
         "last_name": _lastNameController.text,
         "birth_date": _birthDateController.text,
+        "address": _addressController.text,
       };
 
       if (roleValue == 1) {
         requestBody.addAll({
-          "address": _addressController.text,
           "vat_number": _vatNumberController.text,
           "professional_insurance_number": _insuranceNumberController.text,
           "professional_insurance_expiry_date": _expiryDateController.text,
@@ -171,6 +179,10 @@ class _RegisterPageState extends State<RegisterPage> {
                   }
                 },
               ),
+              TextField(
+                controller: _addressController,
+                decoration: const InputDecoration(labelText: 'Indirizzo'),
+              ),
               DropdownButton<String>(
                 value: selectedRole,
                 hint: const Text('Seleziona il tuo ruolo'),
@@ -188,10 +200,6 @@ class _RegisterPageState extends State<RegisterPage> {
                 },
               ),
               if (roleValue == 1) ...[
-                TextField(
-                  controller: _addressController,
-                  decoration: const InputDecoration(labelText: 'Indirizzo'),
-                ),
                 TextField(
                   controller: _vatNumberController,
                   decoration: const InputDecoration(labelText: 'Partita IVA'),
@@ -258,3 +266,14 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 }
+
+
+
+
+
+
+
+
+
+
+

@@ -42,8 +42,8 @@ app.post('/register', [
   }
 
   if (role === 0) {
-    if (!first_name || !last_name || !birth_date) {
-      return res.status(400).json({ success: false, message: 'First name, last name, and birth date are required for role 0.' });
+    if (!first_name || !last_name || !birth_date || !address) {
+      return res.status(400).json({ success: false, message: 'First name, last name, birth date, and address are required for role 0.' });
     }
   } else if (role === 1) {
     if (!first_name || !last_name || !birth_date || !address || !vat_number || !professional_insurance_number || !iban || !professional_association_registration) {
@@ -64,8 +64,8 @@ app.post('/register', [
 
     if (role === 0) {
       result = await pool.query(
-        'INSERT INTO users_type_0 (email, pass, first_name, last_name, birth_date, is_verified) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-        [email, hashedPassword, first_name, last_name, birth_date, false]
+        'INSERT INTO users_type_0 (email, pass, first_name, last_name, birth_date, address, is_verified) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+        [email, hashedPassword, first_name, last_name, birth_date, address, false]
       );
     } else if (role === 1) {
       result = await pool.query(
@@ -88,6 +88,7 @@ app.post('/register', [
     res.status(500).json({ success: false, message: 'Error during registration.' });
   }
 });
+
 
 // Login (Sign In)
 app.post('/login', async (req, res) => {

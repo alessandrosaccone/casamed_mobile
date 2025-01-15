@@ -4,12 +4,10 @@ import 'accept_booking_page.dart';
 import 'dart:convert';
 
 class ViewBookingsPage extends StatefulWidget {
-  //final int userId;
   final String token;
 
   const ViewBookingsPage({
     Key? key,
-    //required this.userId,
     required this.token,
   }) : super(key: key);
 
@@ -91,7 +89,6 @@ class _ViewBookingsPageState extends State<ViewBookingsPage> {
         itemCount: bookings.length,
         itemBuilder: (context, index) {
           final booking = bookings[index];
-          print(booking);
           return Card(
             margin: const EdgeInsets.all(8.0),
             child: InkWell(
@@ -99,11 +96,10 @@ class _ViewBookingsPageState extends State<ViewBookingsPage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) =>
-                        AcceptBookingPage(
-                          bookingId: booking["bookingId"],
-                          token: widget.token,
-                        ),
+                    builder: (context) => AcceptBookingPage(
+                      bookingId: booking["bookingId"],
+                      token: widget.token,
+                    ),
                   ),
                 );
               },
@@ -118,6 +114,8 @@ class _ViewBookingsPageState extends State<ViewBookingsPage> {
                     Text(
                         'Orario: ${booking['startTime']} - ${booking['endTime']}'),
                     Text('Sintomi: ${booking['symptomDescription']}'),
+                    Text('Cura: ${booking['treatment'] ?? 'Non specificata'}'), // Mostra la cura o i farmaci
+                    Text('Indirizzo: ${booking['patientAddress'] ?? 'Non disponibile'}'), // Nuova riga per mostrare l'indirizzo
                   ],
                 ),
                 trailing: Icon(
