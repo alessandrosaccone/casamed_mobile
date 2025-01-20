@@ -76,9 +76,5 @@ ADD COLUMN accepted_booking BOOLEAN DEFAULT false;
 ALTER TABLE bookings
 ADD COLUMN note TEXT;
 
-
-
-
-
-
-
+ALTER TABLE bookings
+ADD COLUMN treatment TEXT;

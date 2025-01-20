@@ -19,20 +19,20 @@ router.get('/discovery', authenticateToken, async (req, res) => {
 
 
 router.put('/bookings', authenticateToken, async (req, res) => {
-  const { doctorId, patientId, bookingDate, startTime, endTime, symptomDescription } = req.body;
+  const { doctorId, patientId, bookingDate, startTime, endTime, symptomDescription, treatment } = req.body;
 
   try {
     // Verifica che tutti i campi necessari siano presenti
-    if (!doctorId || !patientId || !bookingDate || !startTime || !endTime || !symptomDescription) {
+    if (!doctorId || !patientId || !bookingDate || !startTime || !endTime || !symptomDescription || !treatment) {
       return res.status(400).json({ success: false, message: 'Dati mancanti per la prenotazione.' });
     }
 
     // Inserimento della prenotazione nel database
     const result = await pool.query(`
-      INSERT INTO bookings (doctor_id, patient_id, booking_date, start_time, end_time, symptom_description)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO bookings (doctor_id, patient_id, booking_date, start_time, end_time, symptom_description, treatment)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *;
-    `, [doctorId, patientId, bookingDate, startTime, endTime, symptomDescription]);
+    `, [doctorId, patientId, bookingDate, startTime, endTime, symptomDescription, treatment]);
 
     // Converte la data per estrarre solo la parte della data (anno-mese-giorno)
     const date = new Date(bookingDate);
@@ -52,7 +52,6 @@ router.put('/bookings', authenticateToken, async (req, res) => {
       RETURNING *;
     `, [doctorId, formattedDate, startTime, endTime]);
 
-
     if (updateAvailability.rowCount > 0) {
       console.log('Disponibilità aggiornata con successo.');
     } else {
@@ -68,7 +67,6 @@ router.put('/bookings', authenticateToken, async (req, res) => {
       AND end_time = $4
       AND max_patients = 0;
     `, [doctorId, formattedDate, startTime, endTime]);
-
 
     if (deleteAvailability.rowCount > 0) {
       console.log('Disponibilità eliminata con successo');
@@ -137,6 +135,7 @@ router.get('/urgentbookings', authenticateToken, async (req, res) => {
 
 
 
+
 // Endpoint per ottenere tutte le prenotazioni di un medico
 router.get('/doctor/bookings', authenticateToken, async (req, res) => {
   try {
@@ -158,15 +157,17 @@ router.get('/doctor/bookings', authenticateToken, async (req, res) => {
         b.id AS booking_id,
         u.first_name AS patient_first_name,
         u.last_name AS patient_last_name,
+        u.address AS patient_address, 
         b.booking_date,
         b.start_time,
         b.end_time,
         b.symptom_description,
-        b.accepted_booking
+        b.accepted_booking,
+        b.treatment 
       FROM bookings b
       JOIN users_type_0 u ON b.patient_id = u.id
       WHERE b.doctor_id = $1
-      ORDER BY b.id DESC; -- Ordinamento basato sull'ID in ordine crescente
+      ORDER BY b.id DESC; -- Ordinamento basato sull'ID in ordine decrescente
     `, [doctorId]);
 
     // Formatta i risultati
@@ -174,11 +175,13 @@ router.get('/doctor/bookings', authenticateToken, async (req, res) => {
       bookingId: row.booking_id,
       patientFirstName: row.patient_first_name,
       patientLastName: row.patient_last_name,
+      patientAddress: row.patient_address, // Nuovo campo incluso nel risultato
       bookingDate: new Date(row.booking_date).toISOString().split('T')[0], // yyyy-mm-dd
       startTime: row.start_time.slice(0, 5), // HH:MM
       endTime: row.end_time.slice(0, 5),
       symptomDescription: row.symptom_description,
-      acceptedBooking: row.accepted_booking
+      acceptedBooking: row.accepted_booking,
+      treatment: row.treatment // Nuovo campo aggiunto al risultato formattato
     }));
 
     // Restituisci i risultati
@@ -188,6 +191,7 @@ router.get('/doctor/bookings', authenticateToken, async (req, res) => {
     res.status(500).json({ success: false, message: 'Errore durante il recupero delle prenotazioni.' });
   }
 });
+
 
 // Endpoint per ottenere tutte le prenotazioni di un paziente
 router.get('/patient/bookings', authenticateToken, async (req, res) => {
@@ -240,6 +244,8 @@ router.get('/patient/bookings', authenticateToken, async (req, res) => {
     res.status(500).json({ success: false, message: 'Errore durante il recupero delle prenotazioni.' });
   }
 });
+
+
 
 
 

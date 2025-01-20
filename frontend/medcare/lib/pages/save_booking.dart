@@ -25,12 +25,10 @@ class SaveBookingPage extends StatefulWidget {
 }
 
 class _SaveBookingPageState extends State<SaveBookingPage> {
-
   final TextEditingController _symptomsController = TextEditingController();
+  final TextEditingController _treatmentController = TextEditingController(); // Controller per la cura
 
   Future<void> _createBooking() async {
-
-    final patientId = widget.userId; // ID del paziente (da ottenere secondo la tua logica)
     final url = Uri.parse('http://10.0.2.2:3000/bookings');
 
     try {
@@ -46,7 +44,8 @@ class _SaveBookingPageState extends State<SaveBookingPage> {
           'bookingDate': widget.date,
           'startTime': widget.startTime,
           'endTime': widget.endTime,
-          'symptomDescription': _symptomsController.text, // Aggiunta sintomi
+          'symptomDescription': _symptomsController.text, // Sintomi
+          'treatment': _treatmentController.text, // Cura o farmaci
         }),
       );
 
@@ -91,6 +90,17 @@ class _SaveBookingPageState extends State<SaveBookingPage> {
               ),
             ),
             const SizedBox(height: 16.0),
+            const Text('Inserisci la cura o i farmaci che stai seguendo:'),
+            const SizedBox(height: 8.0),
+            TextField(
+              controller: _treatmentController, // Campo per la cura
+              maxLines: 3,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'Descrivi la cura o i farmaci',
+              ),
+            ),
+            const SizedBox(height: 16.0),
             Center(
               child: ElevatedButton(
                 onPressed: _createBooking, // Usa il metodo _createBooking
@@ -103,3 +113,11 @@ class _SaveBookingPageState extends State<SaveBookingPage> {
     );
   }
 }
+
+
+
+
+
+
+
+
