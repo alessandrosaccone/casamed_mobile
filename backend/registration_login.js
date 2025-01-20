@@ -35,57 +35,134 @@ app.post('/register', [
   check('vat_number').optional().matches(/^[A-Z]{2}\d{11}$/).withMessage('Invalid VAT number format.'),
   check('iban').optional().matches(/^[A-Z]{2}\d{2}[A-Z0-9]{1,30}$/).withMessage('Invalid IBAN format.')
 ], async (req, res) => {
-  const { email, pass, role, first_name, last_name, birth_date, address, vat_number, professional_insurance_number, iban, professional_association_registration } = req.body;
+  // Aggiungiamo is_nurse alla de-strutturazione
+  const {
+    email,
+    pass,
+    role,
+    first_name,
+    last_name,
+    birth_date,
+    address,
+    vat_number,
+    professional_insurance_number,
+    iban,
+    professional_association_registration,
+    is_nurse // booleano: true se infermiere, false o undefined se medico
+  } = req.body;
 
   if (!email || !pass) {
-    return res.status(400).json({ success: false, message: 'Email and password are required.' });
+    return res.status(400).json({
+      success: false,
+      message: 'Email and password are required.'
+    });
   }
 
+  // Controlli base sui campi in base al ruolo
   if (role === 0) {
+    // Paziente
     if (!first_name || !last_name || !birth_date || !address) {
-      return res.status(400).json({ success: false, message: 'First name, last name, birth date, and address are required for role 0.' });
+      return res.status(400).json({
+        success: false,
+        message: 'First name, last name, birth date, and address are required for role 0.'
+      });
     }
   } else if (role === 1) {
-    if (!first_name || !last_name || !birth_date || !address || !vat_number || !professional_insurance_number || !iban || !professional_association_registration) {
-      return res.status(400).json({ success: false, message: 'All fields are required for role 1 (professional).' });
+    // Medico o Infermiere
+    if (
+      !first_name ||
+      !last_name ||
+      !birth_date ||
+      !address ||
+      !vat_number ||
+      !professional_insurance_number ||
+      !iban ||
+      !professional_association_registration
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'All fields are required for role 1 (professional).'
+      });
     }
   } else {
     return res.status(400).json({ success: false, message: 'Invalid role.' });
   }
 
+  // Controllo errori di validazione
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ success: false, errors: errors.array() });
   }
 
   try {
+    // Hash della password
     const hashedPassword = await bcrypt.hash(pass, 10);
     let result;
 
     if (role === 0) {
+      // Inserimento in users_type_0 (paziente)
       result = await pool.query(
-        'INSERT INTO users_type_0 (email, pass, first_name, last_name, birth_date, address, is_verified) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+        `INSERT INTO users_type_0 (email, pass, first_name, last_name, birth_date, address, is_verified)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING id`,
         [email, hashedPassword, first_name, last_name, birth_date, address, false]
       );
     } else if (role === 1) {
+      // Inserimento in users_type_1 (medico o infermiere => is_nurse)
+      // Se is_nurse non è definito, di default lo consideriamo false
+      const nurseValue = is_nurse === true; // oppure !!is_nurse
       result = await pool.query(
-        `INSERT INTO users_type_1 (email, pass, first_name, last_name, birth_date, address, vat_number, professional_insurance_number, iban, professional_association_registration, is_verified)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
-        [email, hashedPassword, first_name, last_name, birth_date, address, vat_number, professional_insurance_number, iban, professional_association_registration, false]
+        `INSERT INTO users_type_1 (
+           email,
+           pass,
+           first_name,
+           last_name,
+           birth_date,
+           address,
+           vat_number,
+           professional_insurance_number,
+           iban,
+           professional_association_registration,
+           is_verified,
+           is_nurse
+         )
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+         RETURNING id`,
+        [
+          email,
+          hashedPassword,
+          first_name,
+          last_name,
+          birth_date,
+          address,
+          vat_number,
+          professional_insurance_number,
+          iban,
+          professional_association_registration,
+          false,       // is_verified = false
+          nurseValue   // is_nurse = true/false
+        ]
       );
     }
 
+    // Generazione e salvataggio del token di verifica
     const verificationToken = generateVerificationToken();
     const verificationLink = `http://localhost:3000/verify-email?token=${verificationToken}`;
-    
+
     await pool.query('UPDATE users SET verification_token = $1 WHERE email = $2', [verificationToken, email]);
     await sendVerificationEmail(email, verificationLink);
 
-    res.json({ success: true, message: 'User registered successfully. Please check your email to verify your account.' });
+    res.json({
+      success: true,
+      message: 'User registered successfully. Please check your email to verify your account.'
+    });
     console.log("User registered successfully");
   } catch (err) {
     console.error('Detailed error:', err);
-    res.status(500).json({ success: false, message: 'Error during registration.' });
+    res.status(500).json({
+      success: false,
+      message: 'Error during registration.'
+    });
   }
 });
 
@@ -253,4 +330,3 @@ app.post('/reset-password', async (req, res) => {
 });
 
 module.exports = app;
-
