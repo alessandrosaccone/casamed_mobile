@@ -45,7 +45,7 @@ app.post('/register', [
     if (!first_name || !last_name || !birth_date) {
       return res.status(400).json({ success: false, message: 'First name, last name, and birth date are required for role 0.' });
     }
-  } else if (role === 1) {
+  } else if (role === 1) { 
     if (!first_name || !last_name || !birth_date || !address || !vat_number || !professional_insurance_number || !iban || !professional_association_registration) {
       return res.status(400).json({ success: false, message: 'All fields are required for role 1 (professional).' });
     }
