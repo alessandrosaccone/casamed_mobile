@@ -1,8 +1,14 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'pages/home_page.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 
-void main() {
+void main() { //async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  Stripe.publishableKey = 'pk_test_51RBewF4IOwwF31fGraDQ9QdzjdFfNPQ7pLuJ4IbAQAR7xRFtpSQSfMAEktPppaJLTrqKhfD2K27KzQVwPt5lsFcS00oOCuD348';
+  //await Stripe.instance.applySettings();
+
   runApp(const MyApp());
 }
 

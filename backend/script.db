@@ -78,3 +78,6 @@ ADD COLUMN note TEXT;
 
 ALTER TABLE bookings
 ADD COLUMN treatment TEXT;
+
+-- npm install stripe
+-- su Flutter: flutter pub get

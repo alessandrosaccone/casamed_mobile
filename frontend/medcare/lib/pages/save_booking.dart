@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'payment_page.dart';
 
 class SaveBookingPage extends StatefulWidget {
   final int doctorId;
@@ -103,8 +104,19 @@ class _SaveBookingPageState extends State<SaveBookingPage> {
             const SizedBox(height: 16.0),
             Center(
               child: ElevatedButton(
-                onPressed: _createBooking, // Usa il metodo _createBooking
-                child: const Text('Salva Prenotazione'),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PaymentPage(
+                        doctorId: widget.doctorId,
+                        userId: widget.userId,
+                        token: widget.token,
+                      ),
+                    ),
+                  );
+                },
+                child: const Text('Paga la prenotazione'),
               ),
             ),
           ],
