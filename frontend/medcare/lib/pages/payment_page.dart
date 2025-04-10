@@ -22,6 +22,21 @@ class PaymentPage extends StatefulWidget {
 class _PaymentPageState extends State<PaymentPage> {
   bool _isLoading = false;
 
+  Future<Map<String, dynamic>> acceptBooking(int bookingId, String note, String token) async {
+    final response = await http.put(
+      Uri.parse('http://10.0.2.2:3000/bookings/accept/$bookingId'), // Endpoint del backend
+      headers: {
+        'Authorization': 'Bearer $token', // Autenticazione
+        'Content-Type': 'application/json', // Formato JSON
+      },
+      body: jsonEncode({
+        'note': note, // Campo per la nota
+      }),
+    );
+
+    return jsonDecode(response.body);
+  }
+
   Future<void> _handlePayment() async {
     setState(() {
       _isLoading = true;
@@ -41,21 +56,43 @@ class _PaymentPageState extends State<PaymentPage> {
       final jsonResponse = jsonDecode(response.body);
       final clientSecret = jsonResponse['clientSecret'];
 
-      // 2. Confermare il pagamento con Stripe
+      // 2. Inizializzazione del PaymentSheet
       await Stripe.instance.initPaymentSheet(
         paymentSheetParameters: SetupPaymentSheetParameters(
           paymentIntentClientSecret: clientSecret,
-          merchantDisplayName: 'Dr. ${widget.doctorId}', // o un nome fisso
+          merchantDisplayName: 'Dr. ${widget.doctorId}', // Nome del medico o fisso
           style: ThemeMode.light,
         ),
       );
 
+      // 3. Mostra il PaymentSheet
       await Stripe.instance.presentPaymentSheet();
 
+      // 4. Pagamento completato con successo
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Pagamento effettuato con successo!')),
       );
 
+      // 5. Chiamata API per accettare la prenotazione
+      if (widget.token != null) {
+        final acceptResponse = await acceptBooking(
+          widget.bookingId,
+          "Pagamento ricevuto", // Nota generica
+          widget.token!,
+        );
+
+        if (acceptResponse['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Prenotazione confermata con successo!')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Errore nella conferma della prenotazione')),
+          );
+        }
+      }
+
+      // Chiudi la pagina dopo il pagamento
       Navigator.pop(context);
     } catch (e) {
       print('Errore pagamento: $e');
