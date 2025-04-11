@@ -115,7 +115,7 @@ class _PaymentPageState extends State<PaymentPage> {
 
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => ViewBookingsPatientPage(userId: widget.userId, token: widget.token)),
+        MaterialPageRoute(builder: (context) => ProfilePage(userId: widget.userId, token: widget.token)),
             (Route<dynamic> route) => false,
       );
     } catch (e) {
