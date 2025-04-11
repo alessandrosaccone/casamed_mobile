@@ -13,7 +13,8 @@ class ViewBookingsPatientPage extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  _ViewBookingsPatientPageState createState() => _ViewBookingsPatientPageState();
+  _ViewBookingsPatientPageState createState() =>
+      _ViewBookingsPatientPageState();
 }
 
 class _ViewBookingsPatientPageState extends State<ViewBookingsPatientPage> {
@@ -70,7 +71,18 @@ class _ViewBookingsPatientPageState extends State<ViewBookingsPatientPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
+      appBar: AppBar(
+        automaticallyImplyLeading: false, // Impedisce la freccetta automatica se non è necessaria
+        title: const Text('Le tue Prenotazioni'),
+        backgroundColor: Colors.transparent, // AppBar senza colore
+        elevation: 0, // Rimuovi l'ombra dell'AppBar
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context); // Torna indietro alla pagina precedente
+          },
+        ),
+      ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : errorMessage != null
