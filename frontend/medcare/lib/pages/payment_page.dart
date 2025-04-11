@@ -1,18 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:http/http.dart' as http;
+import 'package:medcare/pages/profile_page.dart';
+import 'package:medcare/pages/viewBookings_patient_page.dart';
 import 'dart:convert';
+import 'discovery_page.dart';
+import 'home_page.dart';
 
 class PaymentPage extends StatefulWidget {
-  final int? doctorId;
-  final int? userId;
-  final String? token;
+  final int doctorId;
+  final int userId;
+  final String token;
+  final String date;
+  final String startTime;
+  final String endTime;
+  final String symptomDescription;
+  final String treatment;
 
   const PaymentPage({
     Key? key,
-    this.doctorId,
-    this.userId,
-    this.token,
+    required this.doctorId,
+    required this.userId,
+    required this.token,
+    required this.date,
+    required this.startTime,
+    required this.endTime,
+    required this.symptomDescription,
+    required this.treatment,
   }) : super(key: key);
 
   @override
@@ -22,19 +36,41 @@ class PaymentPage extends StatefulWidget {
 class _PaymentPageState extends State<PaymentPage> {
   bool _isLoading = false;
 
-  Future<Map<String, dynamic>> acceptBooking(int bookingId, String note, String token) async {
-    final response = await http.put(
-      Uri.parse('http://10.0.2.2:3000/bookings/accept/$bookingId'), // Endpoint del backend
-      headers: {
-        'Authorization': 'Bearer $token', // Autenticazione
-        'Content-Type': 'application/json', // Formato JSON
-      },
-      body: jsonEncode({
-        'note': note, // Campo per la nota
-      }),
-    );
+  Future<bool> _createBooking() async {
+    final url = Uri.parse('http://10.0.2.2:3000/bookings');
 
-    return jsonDecode(response.body);
+    try {
+      final response = await http.put(
+        url,
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'doctorId': widget.doctorId,
+          'patientId': widget.userId,
+          'bookingDate': widget.date,
+          'startTime': widget.startTime,
+          'endTime': widget.endTime,
+          'symptomDescription': widget.symptomDescription,
+          'treatment': widget.treatment,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Errore nella creazione: ${response.body}')),
+        );
+        return false;
+      }
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Errore di connessione.')),
+      );
+      return false;
+    }
   }
 
   Future<void> _handlePayment() async {
@@ -43,12 +79,19 @@ class _PaymentPageState extends State<PaymentPage> {
     });
 
     try {
-      // 1. Richiesta al backend per creare il PaymentIntent
+      bool bookingSuccess = await _createBooking();
+      if (!bookingSuccess) {
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
       final response = await http.post(
         Uri.parse('http://10.0.2.2:3000/payments/create-payment-intent'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'amount': 50, // 0.001 euro = 1 centesimo
+          'amount': 50,
           'currency': 'eur',
         }),
       );
@@ -56,44 +99,25 @@ class _PaymentPageState extends State<PaymentPage> {
       final jsonResponse = jsonDecode(response.body);
       final clientSecret = jsonResponse['clientSecret'];
 
-      // 2. Inizializzazione del PaymentSheet
       await Stripe.instance.initPaymentSheet(
         paymentSheetParameters: SetupPaymentSheetParameters(
           paymentIntentClientSecret: clientSecret,
-          merchantDisplayName: 'Dr. ${widget.doctorId}', // Nome del medico o fisso
+          merchantDisplayName: 'Dr. ${widget.doctorId}',
           style: ThemeMode.light,
         ),
       );
 
-      // 3. Mostra il PaymentSheet
       await Stripe.instance.presentPaymentSheet();
 
-      // 4. Pagamento completato con successo
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Pagamento effettuato con successo!')),
       );
 
-      // 5. Chiamata API per accettare la prenotazione
-      if (widget.token != null) {
-        final acceptResponse = await acceptBooking(
-          widget.bookingId,
-          "Pagamento ricevuto", // Nota generica
-          widget.token!,
-        );
-
-        if (acceptResponse['success'] == true) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Prenotazione confermata con successo!')),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Errore nella conferma della prenotazione')),
-          );
-        }
-      }
-
-      // Chiudi la pagina dopo il pagamento
-      Navigator.pop(context);
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => ViewBookingsPatientPage(userId: widget.userId, token: widget.token)),
+            (Route<dynamic> route) => false,
+      );
     } catch (e) {
       print('Errore pagamento: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -115,20 +139,20 @@ class _PaymentPageState extends State<PaymentPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Riepilogo Prenotazione',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+            const Text('Riepilogo Prenotazione',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            Text('ID Medico: ${widget.doctorId ?? "N/A"}'),
-            Text('ID Utente: ${widget.userId ?? "N/A"}'),
+            Text('ID Medico: ${widget.doctorId}'),
+            Text('ID Utente: ${widget.userId}'),
+            Text('Sintomi: ${widget.symptomDescription}'),
+            Text('Trattamento: ${widget.treatment}'),
             const SizedBox(height: 20),
             Center(
               child: _isLoading
                   ? const CircularProgressIndicator()
                   : ElevatedButton(
                 onPressed: _handlePayment,
-                child: const Text('Paga Ora (0.001€)'),
+                child: const Text('Paga Ora (0.50€)'),
               ),
             ),
           ],

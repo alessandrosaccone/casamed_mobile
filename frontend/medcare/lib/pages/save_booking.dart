@@ -27,48 +27,31 @@ class SaveBookingPage extends StatefulWidget {
 
 class _SaveBookingPageState extends State<SaveBookingPage> {
   final TextEditingController _symptomsController = TextEditingController();
-  final TextEditingController _treatmentController = TextEditingController(); // Controller per la cura
+  final TextEditingController _treatmentController = TextEditingController();
 
-  Future<void> _createBooking() async {
-    final url = Uri.parse('http://10.0.2.2:3000/bookings');
-
-    try {
-      final response = await http.put(
-        url,
-        headers: {
-          'Authorization': 'Bearer ${widget.token}',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'doctorId': widget.doctorId,
-          'patientId': widget.userId,
-          'bookingDate': widget.date,
-          'startTime': widget.startTime,
-          'endTime': widget.endTime,
-          'symptomDescription': _symptomsController.text, // Sintomi
-          'treatment': _treatmentController.text, // Cura o farmaci
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Prenotazione creata con successo!')),
-        );
-        Navigator.pop(context); // Torna alla pagina precedente
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Errore durante la creazione della prenotazione: ${response.body}',
-            ),
-          ),
-        );
-      }
-    } catch (error) {
+  void _validateAndProceed() {
+    if (_symptomsController.text.isEmpty || _treatmentController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Errore di connessione.')),
+        const SnackBar(content: Text('Compila tutti i campi prima di procedere.')),
       );
+      return;
     }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PaymentPage(
+          date: widget.date,
+          startTime: widget.startTime,
+          endTime: widget.endTime,
+          doctorId: widget.doctorId,
+          userId: widget.userId,
+          token: widget.token,
+          symptomDescription: _symptomsController.text,
+          treatment: _treatmentController.text,
+        ),
+      ),
+    );
   }
 
   @override
@@ -94,7 +77,7 @@ class _SaveBookingPageState extends State<SaveBookingPage> {
             const Text('Inserisci la cura o i farmaci che stai seguendo:'),
             const SizedBox(height: 8.0),
             TextField(
-              controller: _treatmentController, // Campo per la cura
+              controller: _treatmentController,
               maxLines: 3,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
@@ -104,18 +87,7 @@ class _SaveBookingPageState extends State<SaveBookingPage> {
             const SizedBox(height: 16.0),
             Center(
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PaymentPage(
-                        doctorId: widget.doctorId,
-                        userId: widget.userId,
-                        token: widget.token,
-                      ),
-                    ),
-                  );
-                },
+                onPressed: _validateAndProceed,
                 child: const Text('Paga la prenotazione'),
               ),
             ),
@@ -125,11 +97,3 @@ class _SaveBookingPageState extends State<SaveBookingPage> {
     );
   }
 }
-
-
-
-
-
-
-
-
