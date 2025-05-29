@@ -77,7 +77,7 @@ class _BookingPageState extends State<BookingPage> {
     setState(() {
       _events.clear();
       for (var availability in availabilities) {
-        DateTime fullDateTime = DateTime.parse(availability['date']).toLocal();
+        DateTime fullDateTime = DateTime.parse(availability['date']);
         DateTime date = _normalizeDate(fullDateTime);
 
         String timeRange = '${availability['start_time']} - ${availability['end_time']}';
