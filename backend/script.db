@@ -78,3 +78,27 @@ ADD COLUMN note TEXT;
 
 ALTER TABLE bookings
 ADD COLUMN treatment TEXT;
+
+ALTER TABLE users_type_1
+ADD COLUMN is_nurse BOOLEAN DEFAULT false;
+
+ALTER TABLE users
+ADD COLUMN role INT NOT NULL;
+
+-- 1. RIMUOVERE I CONSTRAINT ESISTENTI
+ALTER TABLE bookings DROP CONSTRAINT IF EXISTS fk_patient;
+ALTER TABLE bookings DROP CONSTRAINT IF EXISTS fk_doctor;
+
+-- Constraint per patient_id: deve riferirsi a users con role = 0
+ALTER TABLE bookings 
+ADD CONSTRAINT fk_patient 
+FOREIGN KEY (patient_id) 
+REFERENCES users(id)  
+ON DELETE CASCADE;
+
+-- Constraint per doctor_id: deve riferirsi a users con role = 1 OR role = 2
+ALTER TABLE bookings 
+ADD CONSTRAINT fk_doctor 
+FOREIGN KEY (doctor_id) 
+REFERENCES users(id) 
+ON DELETE CASCADE;

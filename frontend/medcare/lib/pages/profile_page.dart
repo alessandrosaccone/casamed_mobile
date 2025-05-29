@@ -6,7 +6,6 @@ import 'viewBookings_page.dart';
 import 'viewBookings_page.dart'; // Modifica il nome del file
 import 'viewBookings_patient_page.dart'; // Importa la nuova pagina per il paziente
 
-
 class ProfilePage extends StatefulWidget {
   final int userId;
   final String token;
@@ -21,18 +20,56 @@ class ProfilePage extends StatefulWidget {
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin {
   late ApiService apiService;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
   Map<String, dynamic>? userProfile;
   String message = '';
   bool isDoctor = false;
+  int userRole = 0; // 0 = paziente, 1 = infermiere, 2 = medico
   int _selectedIndex = 0;
+
+  // Stati di espansione per le sezioni
+  bool _isPersonalInfoExpanded = false;
+  bool _isProfessionalInfoExpanded = false;
 
   @override
   void initState() {
     super.initState();
     apiService = ApiService(baseUrl: 'http://10.0.2.2:3000');
+
+    // Inizializza le animazioni
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    ));
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOutCubic,
+    ));
+
     fetchUserProfile();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   Future<void> fetchUserProfile() async {
@@ -44,7 +81,13 @@ class _ProfilePageState extends State<ProfilePage> {
         final profileData = await apiService.getUserProfile(userId, token);
         setState(() {
           userProfile = profileData;
+          // Determina il ruolo dell'utente
+          userRole = profileData['userData']['role'] ?? 0;
+          isDoctor = userRole == 1 || userRole == 2; // infermiere o medico
         });
+
+        // Avvia l'animazione quando i dati sono caricati
+        _animationController.forward();
 
         await checkIfUserIsDoctor(profileData['userData']['id'], token);
       } catch (e) {
@@ -74,9 +117,30 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
+  String _getUserRoleText() {
+    switch (userRole) {
+      case 1:
+        return 'Infermiere';
+      case 2:
+        return 'Medico';
+      default:
+        return 'Paziente';
+    }
+  }
+
+  IconData _getUserRoleIcon() {
+    switch (userRole) {
+      case 1:
+        return Icons.health_and_safety; // Infermiere
+      case 2:
+        return Icons.local_hospital; // Medico
+      default:
+        return Icons.person; // Paziente
+    }
+  }
+
   Widget _buildPage() {
-    print(
-        "Selected Index: $_selectedIndex"); // Debug log to check if the index is updating
+    print("Selected Index: $_selectedIndex");
     switch (_selectedIndex) {
       case 0:
         return _buildProfile(); // Profile page
@@ -88,63 +152,229 @@ class _ProfilePageState extends State<ProfilePage> {
           isDoctor: isDoctor,
         );
       case 2:
-        return ViewBookingsPatientPage( // Naviga alla nuova pagina
+        return ViewBookingsPatientPage(
           userId: widget.userId,
           token: widget.token,
         );
       default:
-        return _buildProfile(); // Default case, just in case
+        return _buildProfile();
     }
   }
 
   Widget _buildProfile() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: userProfile == null
-          ? Center(
-        child: Text(
-          message,
-          style: TextStyle(fontSize: 18, color: Colors.red),
+    if (userProfile == null) {
+      return Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFFE3F2FD), // Azzurro chiaro
+              Colors.white,
+            ],
+          ),
         ),
-      )
-          : Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Card(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            elevation: 5,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (message.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  margin: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFF1976D2)),
+                  ),
+                  child: Column(
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        color: Color(0xFF1976D2),
+                        size: 48,
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Errore nel caricamento',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1976D2),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        message,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF1976D2),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF1976D2).withOpacity(0.2),
+                            blurRadius: 20,
+                            spreadRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: const CircularProgressIndicator(
+                        strokeWidth: 3,
+                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1976D2)),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Caricamento profilo...',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFFE3F2FD), // Azzurro chiaro
+            Colors.white,
+            Color(0xFFF3E5F5), // Azzurro molto chiaro
+          ],
+          stops: [0.0, 0.5, 1.0],
+        ),
+      ),
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: SlideTransition(
+            position: _slideAnimation,
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(20.0),
               child: Column(
                 children: [
-                  Text(
-                    'Profilo Utente',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleLarge
-                        ?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  ListTile(
-                    title: Text(
-                      'Email: ${userProfile!['userData']['email']}',
-                    ),
-                  ),
-                  ListTile(
-                    title: Text(
-                      'Nome: ${userProfile!['userData']['first_name'] ?? 'N/A'}',
-                    ),
-                  ),
-                  ListTile(
-                    title: Text(
-                      'Cognome: ${userProfile!['userData']['last_name'] ?? 'N/A'}',
-                    ),
-                  ),
-                  ..._buildAdditionalFields(userProfile!['userData']),
                   const SizedBox(height: 20),
+
+                  // Header con avatar e nome
+                  _buildProfileHeader(),
+
+                  const SizedBox(height: 30),
+
+                  // Sezione Informazioni Personali (espandibile solo per professionisti)
+                  if (isDoctor) _buildExpandablePersonalInfoCard(),
+
+                  // Per i pazienti mostra sempre le info personali
+                  if (!isDoctor) _buildPersonalInfoCard(),
+
+                  const SizedBox(height: 20),
+
+                  // Informazioni professionali (espandibile, solo se presenti)
+                  if (_hasProfessionalInfo() && isDoctor)
+                    _buildExpandableProfessionalInfoCard(),
+
+                  const SizedBox(height: 100), // Spazio per la bottom nav
                 ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileHeader() {
+    final userData = userProfile!['userData'];
+    final fullName = '${userData['first_name'] ?? 'Nome'} ${userData['last_name'] ?? 'Cognome'}';
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF1976D2), // Blu
+            Color(0xFF42A5F5), // Azzurro
+          ],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1976D2).withOpacity(0.3),
+            blurRadius: 20,
+            spreadRadius: 2,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withOpacity(0.3),
+                width: 3,
+              ),
+            ),
+            child: Icon(
+              _getUserRoleIcon(),
+              size: 60,
+              color: Colors.white,
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          Text(
+            fullName,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+            textAlign: TextAlign.center,
+          ),
+
+          const SizedBox(height: 8),
+
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              _getUserRoleText(),
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -153,125 +383,462 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          _selectedIndex == 0
-              ? 'Profilo'
-              : (_selectedIndex == 1
-              ? (isDoctor ? 'Calendario' : 'Scopri i Medici')
-              : 'Prenotazioni'),
-        ),
-      ),
-      body: _buildPage(),
-      // Conditionally display BottomNavigationBar for doctor and non-doctor users
-      bottomNavigationBar: BottomNavigationBar(
-        items: isDoctor
-            ? const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
-            label: 'Calendario',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.book_online),
-            label: 'Prenotazioni',
-          ),
-        ]
-            : const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profilo',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.auto_fix_high),
-            label: 'Discovery',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.book_online),
-            label: 'Le tue prenotazioni',
+  Widget _buildExpandablePersonalInfoCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade200,
+            blurRadius: 15,
+            spreadRadius: 2,
+            offset: const Offset(0, 5),
           ),
         ],
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          if (isDoctor) {
-            // Navigate to the appropriate page for doctors
-            switch (index) {
-              case 0:
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CalendarPage(
-                      userId: widget.userId,
-                      token: widget.token,
+      ),
+      child: Column(
+        children: [
+          InkWell(
+            onTap: () {
+              setState(() {
+                _isPersonalInfoExpanded = !_isPersonalInfoExpanded;
+              });
+            },
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE3F2FD),
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(20),
+                  topRight: const Radius.circular(20),
+                  bottomLeft: _isPersonalInfoExpanded ? Radius.zero : const Radius.circular(20),
+                  bottomRight: _isPersonalInfoExpanded ? Radius.zero : const Radius.circular(20),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1976D2).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.person_outline,
+                      color: Color(0xFF1976D2),
+                      size: 24,
                     ),
                   ),
-                );
-                break;
-              case 1:
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ViewBookingsPage(
-                      token: widget.token,
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: Text(
+                      'Informazioni Personali',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1976D2),
+                      ),
                     ),
                   ),
-                );
-                break;
-            }
-          } else {
-            // Update the selected index for non-doctor users
-            _onItemTapped(index);
-          }
-        },
+                  Icon(
+                    _isPersonalInfoExpanded ? Icons.expand_less : Icons.expand_more,
+                    color: const Color(0xFF1976D2),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          if (_isPersonalInfoExpanded)
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: _buildPersonalInfoFields(),
+              ),
+            ),
+        ],
       ),
     );
   }
 
+  Widget _buildPersonalInfoCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade200,
+            blurRadius: 15,
+            spreadRadius: 2,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: const BoxDecoration(
+              color: Color(0xFFE3F2FD),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1976D2).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.person_outline,
+                    color: Color(0xFF1976D2),
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                const Text(
+                  'Informazioni Personali',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1976D2),
+                  ),
+                ),
+              ],
+            ),
+          ),
 
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: _buildPersonalInfoFields(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
+  Widget _buildExpandableProfessionalInfoCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade200,
+            blurRadius: 15,
+            spreadRadius: 2,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          InkWell(
+            onTap: () {
+              setState(() {
+                _isProfessionalInfoExpanded = !_isProfessionalInfoExpanded;
+              });
+            },
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE3F2FD),
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(20),
+                  topRight: const Radius.circular(20),
+                  bottomLeft: _isProfessionalInfoExpanded ? Radius.zero : const Radius.circular(20),
+                  bottomRight: _isProfessionalInfoExpanded ? Radius.zero : const Radius.circular(20),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1976D2).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.work_outline,
+                      color: Color(0xFF1976D2),
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: Text(
+                      'Informazioni Professionali',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1976D2),
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    _isProfessionalInfoExpanded ? Icons.expand_less : Icons.expand_more,
+                    color: const Color(0xFF1976D2),
+                  ),
+                ],
+              ),
+            ),
+          ),
 
-  List<Widget> _buildAdditionalFields(Map<String, dynamic> userData) {
+          if (_isProfessionalInfoExpanded)
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: _buildProfessionalFields(userProfile!['userData']),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _buildPersonalInfoFields() {
+    final userData = userProfile!['userData'];
     List<Widget> fields = [];
 
-    /*if (userData['birth_date'] != null) {
-      fields.add(ListTile(
-        title: Text('Data di nascita: ${userData['birth_date']}'),
-      ));
-    }*/
+    fields.add(_buildInfoTile(
+      icon: Icons.email_outlined,
+      label: 'Email',
+      value: userData['email'] ?? 'Non disponibile',
+    ));
 
     if (userData['address'] != null) {
-      fields.add(ListTile(
-        title: Text('Indirizzo: ${userData['address']}'),
-      ));
-    }
-
-    if (userData['vat_number'] != null) {
-      fields.add(ListTile(
-        title: Text('Partita IVA (VAT number): ${userData['vat_number']}'),
-      ));
-    }
-
-    if (userData['professional_insurance_number'] != null) {
-      fields.add(ListTile(
-        title: Text("Numero d'assicurazione professionale: ${userData['professional_insurance_number']}"),
-      ));
-    }
-
-    if (userData['iban'] != null) {
-      fields.add(ListTile(
-        title: Text('IBAN: ${userData['iban']}'),
-      ));
-    }
-
-    if (userData['professional_association_registration'] != null) {
-      fields.add(ListTile(
-        title: Text("Identificativo dell'iscrizione all'ordine professionale: ${userData['professional_association_registration']}"),
+      fields.add(_buildInfoTile(
+        icon: Icons.location_on_outlined,
+        label: 'Indirizzo',
+        value: userData['address'],
       ));
     }
 
     return fields;
   }
+
+  Widget _buildInfoTile({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE3F2FD).withOpacity(0.3),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFF1976D2).withOpacity(0.1),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1976D2).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              color: const Color(0xFF1976D2),
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _hasProfessionalInfo() {
+    final userData = userProfile!['userData'];
+    return userData['vat_number'] != null ||
+        userData['professional_insurance_number'] != null ||
+        userData['iban'] != null ||
+        userData['professional_association_registration'] != null;
+  }
+
+  List<Widget> _buildProfessionalFields(Map<String, dynamic> userData) {
+    List<Widget> fields = [];
+
+    if (userData['vat_number'] != null) {
+      fields.add(_buildInfoTile(
+        icon: Icons.business,
+        label: 'Partita IVA',
+        value: userData['vat_number'],
+      ));
+    }
+
+    if (userData['professional_insurance_number'] != null) {
+      fields.add(_buildInfoTile(
+        icon: Icons.security,
+        label: 'Numero Assicurazione Professionale',
+        value: userData['professional_insurance_number'],
+      ));
+    }
+
+    if (userData['iban'] != null) {
+      fields.add(_buildInfoTile(
+        icon: Icons.account_balance,
+        label: 'IBAN',
+        value: userData['iban'],
+      ));
+    }
+
+    if (userData['professional_association_registration'] != null) {
+      fields.add(_buildInfoTile(
+        icon: Icons.verified_user,
+        label: 'Iscrizione Ordine Professionale',
+        value: userData['professional_association_registration'],
+      ));
+    }
+
+    return fields;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        title: Text(
+          _selectedIndex == 0
+              ? 'Il Mio Profilo'
+              : (_selectedIndex == 1
+              ? (isDoctor ? 'Calendario' : 'Scopri i Medici')
+              : 'Le Mie Prenotazioni'),
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: _buildPage(),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.shade300,
+              blurRadius: 10,
+              spreadRadius: 2,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          type: BottomNavigationBarType.fixed,
+          selectedItemColor: const Color(0xFF1976D2),
+          unselectedItemColor: Colors.grey.shade500,
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
+          items: isDoctor
+              ? const <BottomNavigationBarItem>[
+            BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_today),
+              label: 'Calendario',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.book_online),
+              label: 'Prenotazioni',
+            ),
+          ]
+              : const <BottomNavigationBarItem>[
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person),
+              label: 'Profilo',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.auto_fix_high),
+              label: 'Discovery',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.book_online),
+              label: 'Prenotazioni',
+            ),
+          ],
+          currentIndex: _selectedIndex,
+          onTap: (index) {
+            if (isDoctor) {
+              switch (index) {
+                case 0:
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CalendarPage(
+                        userId: widget.userId,
+                        token: widget.token,
+                      ),
+                    ),
+                  );
+                  break;
+                case 1:
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ViewBookingsPage(
+                        token: widget.token,
+                      ),
+                    ),
+                  );
+                  break;
+              }
+            } else {
+              _onItemTapped(index);
+            }
+          },
+        ),
+      ),
+    );
+  }
 }
+
+
