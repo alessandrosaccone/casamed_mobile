@@ -92,6 +92,56 @@ class ApiService {
     }
   }
 
+  // Metodo per ottenere solo i medici
+  Future<List<Map<String, dynamic>>> getDoctorsOnly(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/discovery/doctor'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return List<Map<String, dynamic>>.from(data['doctors']);
+      } else {
+        print('Error response: ${response.body}');
+        throw Exception(
+            'Failed to fetch doctors: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      print('Error fetching doctors only: $e');
+      rethrow;
+    }
+  }
+
+// Metodo per ottenere solo gli infermieri
+  Future<List<Map<String, dynamic>>> getNursesOnly(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/discovery/nurse'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return List<Map<String, dynamic>>.from(data['nurses']);
+      } else {
+        print('Error response: ${response.body}');
+        throw Exception(
+            'Failed to fetch nurses: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      print('Error fetching nurses only: $e');
+      rethrow;
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getDoctorAvailability(int userId,
       String token) async {
     final response = await http.get(
@@ -111,6 +161,7 @@ class ApiService {
               .body}');
     }
   }
+
 
   Future<void> deleteAvailability(int userId, String token, String date,
       String startTime, String endTime) async {

@@ -3,12 +3,13 @@ const pool = require('./db'); // Connessione al database
 const router = express.Router();
 const authenticateToken = require('./authMiddleware'); // Middleware di autenticazione
 
-// Endpoint protetto per ottenere i medici
+// Endpoint protetto per ottenere i medici da users_type_1
 router.get('/discovery', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT id, first_name, last_name 
-      FROM users_type_1
+      SELECT id, first_name, last_name, role 
+      FROM users
+      WHERE (role = 1 OR role = 2)
     `);
     res.json({ success: true, doctors: result.rows });
   } catch (err) {
@@ -16,6 +17,37 @@ router.get('/discovery', authenticateToken, async (req, res) => {
     res.status(500).json({ success: false, message: 'Errore durante il recupero dei dati.' });
   }
 });
+
+// Endpoint per ottenere i medici da users con ruolo 2
+router.get('/discovery/doctor', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, first_name, last_name 
+      FROM users
+      WHERE role = 2
+    `);
+    res.json({ success: true, doctors: result.rows });
+  } catch (err) {
+    console.error('Errore durante il recupero dei dati:', err);
+    res.status(500).json({ success: false, message: 'Errore durante il recupero dei dati.' });
+  }
+});
+
+// Endpoint per ottenere gli infermieri da users con ruolo 1
+router.get('/discovery/nurse', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT id, first_name, last_name 
+      FROM users
+      WHERE role = 1
+    `);
+    res.json({ success: true, nurses: result.rows });
+  } catch (err) {
+    console.error('Errore durante il recupero dei dati:', err);
+    res.status(500).json({ success: false, message: 'Errore durante il recupero dei dati.' });
+  }
+});
+
 
 
 router.put('/bookings', authenticateToken, async (req, res) => {
@@ -94,7 +126,7 @@ router.get('/urgentbookings', authenticateToken, async (req, res) => {
     // Scriviamo la query SQL per selezionare i medici con disponibilità future
     const query = ` 
       SELECT u.id, u.first_name, u.last_name, a.available_date, a.start_time, a.end_time
-      FROM users_type_1 u
+      FROM users u
       JOIN availability a ON u.id = a.user_id
       WHERE a.available_date > NOW() -- Solo le disponibilità future
       ORDER BY a.available_date ASC, a.start_time ASC -- Ordina dalla disponibilità più recente
@@ -144,7 +176,7 @@ router.get('/doctor/bookings', authenticateToken, async (req, res) => {
 
     // Verifica che l'utente sia un medico
     const doctorCheck = await pool.query(`
-      SELECT 1 FROM users_type_1 WHERE id = $1;
+      SELECT 1 FROM users WHERE id = $1 and (role = 1 or role = 2);
     `, [doctorId]);
 
     if (doctorCheck.rowCount === 0) {
@@ -165,8 +197,8 @@ router.get('/doctor/bookings', authenticateToken, async (req, res) => {
         b.accepted_booking,
         b.treatment 
       FROM bookings b
-      JOIN users_type_0 u ON b.patient_id = u.id
-      WHERE b.doctor_id = $1
+      JOIN users u ON b.patient_id = u.id
+      WHERE b.doctor_id = $1 AND u.role = 0 -- Assicurati di filtrare solo i pazienti
       ORDER BY b.id DESC; -- Ordinamento basato sull'ID in ordine decrescente
     `, [doctorId]);
 
@@ -201,7 +233,7 @@ router.get('/patient/bookings', authenticateToken, async (req, res) => {
 
     // Verifica che l'utente sia un paziente
     const patientCheck = await pool.query(`
-      SELECT 1 FROM users_type_0 WHERE id = $1;
+      SELECT 1 FROM users WHERE id = $1 and (role = 0);
     `, [patientId]);
 
     if (patientCheck.rowCount === 0) {
@@ -220,8 +252,8 @@ router.get('/patient/bookings', authenticateToken, async (req, res) => {
         b.symptom_description,
         b.accepted_booking
       FROM bookings b
-      JOIN users_type_1 u ON b.doctor_id = u.id
-      WHERE b.patient_id = $1
+      JOIN users u ON b.doctor_id = u.id
+      WHERE b.patient_id = $1 AND (u.role = 1 OR u.role = 2) -- Assicurati di filtrare solo i medici
       ORDER BY b.id DESC; -- Ordinamento basato sull'ID in ordine decrescente
     `, [patientId]);
 

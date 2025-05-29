@@ -17,15 +17,22 @@ router.get('/:userId', authenticateToken, async (req, res) => {
     let result;
 
     // Cerca l'utente nel database (es. pazienti)
-    result = await pool.query('SELECT * FROM users_type_0 WHERE id = $1', [userId]);
+    // result = await pool.query('SELECT * FROM users_type_0 WHERE id = $1', [userId]);
+    // if (result.rows.length > 0) {
+    //   return res.json({ success: true, role: 0, userData: result.rows[0] });
+    // }
+    result = await pool.query('SELECT * FROM users WHERE id = $1 and role = 0', [userId]);
     if (result.rows.length > 0) {
       return res.json({ success: true, role: 0, userData: result.rows[0] });
     }
-
     // Cerca l'utente nel database (es. healthcare experts)
-    result = await pool.query('SELECT * FROM users_type_1 WHERE id = $1', [userId]);
+    result = await pool.query('SELECT * FROM users WHERE id = $1 and role = 1', [userId]);
     if (result.rows.length > 0) {
       return res.json({ success: true, role: 1, userData: result.rows[0] });
+    }
+    result = await pool.query('SELECT * FROM users WHERE id = $1 and role = 2', [userId]);
+    if (result.rows.length > 0) {
+      return res.json({ success: true, role: 2, userData: result.rows[0] });
     }
 
     return res.status(404).json({ success: false, message: 'User not found' });
