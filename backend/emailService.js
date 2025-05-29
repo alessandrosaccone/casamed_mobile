@@ -1,15 +1,16 @@
 const nodemailer = require('nodemailer');
 
-// Configurazione del trasportatore SMTP
+
 const transporter = nodemailer.createTransport({
-  host: 'smtp.eu.sparkpostmail.com',
-  port: 587,
-  secure: false, // Nessuna crittografia
+  host: 'mail.visitame.it',
+  port: 465,
+  secure: true, // SSL/TLS usa secure: true
   auth: {
-    user: 'SMTP_Injection',
-    pass: '2c5033cfc6023f2dc9099ea3df86110fc35f3c50'
+    user: 'no-reply@visitame.it',
+    pass: 'AhQKgdvkZERTk8x5LxZ8' // inserisci qui la tua password
   }
 });
+
 
 // Funzione per inviare l'email di verifica
 const sendVerificationEmail = async (email, verificationLink) => {

@@ -25,7 +25,7 @@ const checkIfDoctor = async (req, res, next) => {
     const userId = req.userId;
 
     try {
-        const result = await pool.query('SELECT id FROM users_type_1 WHERE id = $1', [userId]);
+        const result = await pool.query('SELECT id FROM users WHERE id = $1 AND (role = 1 OR role = 2)', [userId]);
 
         if (result.rows.length === 0) {
             return res.status(403).json({ message: 'Access denied. Only doctors can access this resource.' });
@@ -196,6 +196,7 @@ router.get('/:userId', verifyToken, async (req, res) => {
         res.status(500).json({ message: 'Error fetching availability.' });
     }
 });
+  
 
 // Route to delete a specific availability
 const { parseISO, format } = require('date-fns');
