@@ -106,3 +106,7 @@ ADD CONSTRAINT fk_doctor
 FOREIGN KEY (doctor_id) 
 REFERENCES users(id) 
 ON DELETE CASCADE;
+
+
+ALTER TABLE bookings 
+ADD COLUMN IF NOT EXISTS payment_intent_id VARCHAR(255);

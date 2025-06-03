@@ -48,9 +48,8 @@ router.get('/discovery/nurse', authenticateToken, async (req, res) => {
   }
 });
 
-
-
-router.put('/bookings', authenticateToken, async (req, res) => {
+// Endpoint per verificare la disponibilità prima del pagamento
+router.put('/bookings/verify', authenticateToken, async (req, res) => {
   const { doctorId, patientId, bookingDate, startTime, endTime, symptomDescription, treatment } = req.body;
 
   try {
@@ -69,17 +68,77 @@ router.put('/bookings', authenticateToken, async (req, res) => {
       return res.status(409).json({ success: false, message: 'La prenotazione esiste già per questo orario.' });
     }
 
+    const date = (() => {
+      const d = new Date(bookingDate);
+      // Usa il fuso orario locale invece di UTC
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    })();
+
+    // Verifica solo la disponibilità senza modificare
+    const checkAvailability = await pool.query(`
+      SELECT * FROM availability
+      WHERE user_id = $1 AND available_date = $2 
+      AND start_time = $3 AND end_time = $4 AND max_patients > 0;
+    `, [doctorId, date, startTime, endTime]);
+
+    if (checkAvailability.rowCount === 0) {
+      return res.status(400).json({ success: false, message: "Disponibilità non trovata o esaurita." });
+    }
+
+    res.json({ success: true, message: 'Disponibilità verificata con successo.' });
+  } catch (err) {
+    console.error('Errore durante la verifica:', err);
+    res.status(500).json({ success: false, message: 'Errore durante la verifica della disponibilità.' });
+  }
+});
+
+// Endpoint per creare la prenotazione dopo pagamento confermato (transazione atomica)
+router.post('/bookings/complete', authenticateToken, async (req, res) => {
+  const { doctorId, patientId, bookingDate, startTime, endTime, symptomDescription, treatment } = req.body;
+  
+  const client = await pool.connect();
+  
+  try {
+    await client.query('BEGIN');
+
+    // Controllo finale disponibilità dentro la transazione
+    const date = new Date(bookingDate).toISOString().split('T')[0];
+    
+    const finalAvailabilityCheck = await client.query(`
+      SELECT * FROM availability
+      WHERE user_id = $1 AND available_date = $2 
+      AND start_time = $3 AND end_time = $4 AND max_patients > 0
+      FOR UPDATE;
+    `, [doctorId, date, startTime, endTime]);
+
+
+    if (finalAvailabilityCheck.rowCount === 0) {
+      throw new Error('Disponibilità non più presente o esaurita.');
+    }
+
+    // Controllo finale duplicati dentro la transazione
+    const finalDuplicateCheck = await client.query(`
+      SELECT 1 FROM bookings 
+      WHERE doctor_id = $1 AND patient_id = $2 AND booking_date = $3 
+      AND start_time = $4 AND end_time = $5;
+    `, [doctorId, patientId, bookingDate, startTime, endTime]);
+
+    if (finalDuplicateCheck.rowCount > 0) {
+      throw new Error('La prenotazione esiste già per questo orario.');
+    }
+
     // Inserimento della prenotazione
-    const result = await pool.query(`
+    const bookingResult = await client.query(`
       INSERT INTO bookings (doctor_id, patient_id, booking_date, start_time, end_time, symptom_description, treatment)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *;
     `, [doctorId, patientId, bookingDate, startTime, endTime, symptomDescription, treatment]);
 
-    const date = new Date(bookingDate).toISOString().split('T')[0];
-
     // Aggiornamento della disponibilità del medico
-    const updateAvailability = await pool.query(`
+    const updateAvailability = await client.query(`
       UPDATE availability
       SET max_patients = max_patients - 1
       WHERE user_id = $1 AND available_date = $2 
@@ -88,26 +147,27 @@ router.put('/bookings', authenticateToken, async (req, res) => {
     `, [doctorId, date, startTime, endTime]);
 
     if (updateAvailability.rowCount === 0) {
-      return res.status(400).json({ success: false, message: "Errore nell'aggiornamento della disponibilità.'" });
+      throw new Error("Errore nell'aggiornamento della disponibilità.");
     }
 
     // Eliminazione della disponibilità se max_patients = 0
-    await pool.query(`
+    await client.query(`
       DELETE FROM availability
       WHERE user_id = $1 AND available_date = $2 
       AND start_time = $3 AND end_time = $4 AND max_patients = 0;
     `, [doctorId, date, startTime, endTime]);
 
-    res.json({ success: true, booking: result.rows[0] });
+    await client.query('COMMIT');
+    res.json({ success: true, booking: bookingResult.rows[0] });
+
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error('Errore durante la creazione della prenotazione:', err);
-    res.status(500).json({ success: false, message: 'Errore durante la creazione della prenotazione.' });
+    res.status(500).json({ success: false, message: err.message });
+  } finally {
+    client.release();
   }
 });
-
-
-
-
 
 // Endpoint per la richiesta di disponibilità urgenti
 router.get('/urgentbookings', authenticateToken, async (req, res) => {
@@ -153,9 +213,6 @@ router.get('/urgentbookings', authenticateToken, async (req, res) => {
     res.status(500).json({ success: false, message: 'Errore interno del server' });
   }
 });
-
-
-
 
 // Endpoint per ottenere tutte le prenotazioni di un medico
 router.get('/doctor/bookings', authenticateToken, async (req, res) => {
@@ -213,7 +270,6 @@ router.get('/doctor/bookings', authenticateToken, async (req, res) => {
   }
 });
 
-
 // Endpoint per ottenere tutte le prenotazioni di un paziente
 router.get('/patient/bookings', authenticateToken, async (req, res) => {
   try {
@@ -266,10 +322,6 @@ router.get('/patient/bookings', authenticateToken, async (req, res) => {
   }
 });
 
-
-
-
-
 // Endpoint per accettare una prenotazione
 router.put('/bookings/accept/:id', async (req, res) => {
   const bookingId = req.params.id; // ID della prenotazione da accettare
@@ -305,7 +357,5 @@ router.put('/bookings/accept/:id', async (req, res) => {
       res.status(500).json({ error: 'Errore del server.' });
   }
 });
-
-
 
 module.exports = router;

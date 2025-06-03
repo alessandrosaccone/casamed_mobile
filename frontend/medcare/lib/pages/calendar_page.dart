@@ -51,7 +51,7 @@ class _CalendarPageState extends State<CalendarPage> {
       setState(() {
         _events.clear();
         for (var slot in availability) {
-          DateTime date = _normalizeDate(DateTime.parse(slot['date']).toLocal());
+          DateTime date = _normalizeDate(DateTime.parse(slot['date']));
 
           if (_events.containsKey(date)) {
             _events[date]?.add(slot); // Aggiungi evento esistente
@@ -84,53 +84,6 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Seleziona Disponibilità'),
-      ),
-      body: Column(
-        children: [
-          TableCalendar(
-            firstDay: DateTime.utc(2020, 10, 16),
-            lastDay: DateTime.utc(2030, 10, 16),
-            focusedDay: _focusedDay,
-            eventLoader: (day) {
-              return _events[_normalizeDate(day)] ?? [];
-            },
-            selectedDayPredicate: (day) => _selectedDays.contains(day),
-            onDaySelected: (selectedDay, focusedDay) {
-              setState(() {
-                _selectedDay = selectedDay;
-                _focusedDay = focusedDay;
-                _selectedDays.contains(selectedDay) ? _selectedDays.remove(selectedDay) : _selectedDays.add(selectedDay);
-              });
-            },
-            calendarFormat: _calendarFormat,
-            onFormatChanged: (format) {
-              setState(() {
-                _calendarFormat = format;
-              });
-            },
-          ),
-          SizedBox(height: 20),
-          _buildTimeSelector(),
-          _buildMaxPatientsField(),
-          ElevatedButton(
-            onPressed: _saveAvailability,
-            child: Text('Salva Disponibilità'),
-          ),
-          SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: _navigateToBookingPage,
-            child: Text('Vai alla pagina per cancellare le disponibilità'),
-          ),
-        ],
-      ),
-    );
-  }
-
   // Funzione per selezionare l'orario di inizio
   Future<void> _selectStartTime(BuildContext context) async {
     TimeOfDay? selectedTime = await showTimePicker(
@@ -159,61 +112,176 @@ class _CalendarPageState extends State<CalendarPage> {
 
   // Funzione per costruire la parte dell'interfaccia che seleziona orari
   Widget _buildTimeSelector() {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('Orario di inizio: '),
-            _startTime == null
-                ? Text('Non selezionato')
-                : Text('${_startTime!.hour}:${_startTime!.minute}'),
-            TextButton(
-              onPressed: () => _selectStartTime(context),
-              child: Text('Seleziona Inizio'),
-            ),
-          ],
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('Orario di fine: '),
-            _endTime == null
-                ? Text('Non selezionato')
-                : Text('${_endTime!.hour}:${_endTime!.minute}'),
-            TextButton(
-              onPressed: () => _selectEndTime(context),
-              child: Text('Seleziona Fine'),
-            ),
-          ],
-        ),
-      ],
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade200,
+            blurRadius: 8,
+            spreadRadius: 2,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.access_time, color: Color(0xFF1976D2)),
+              const SizedBox(width: 8),
+              const Text(
+                'Seleziona Orari',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1976D2),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Orario di inizio
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Orario di inizio:', style: TextStyle(fontSize: 14, color: Colors.grey)),
+              const SizedBox(height: 4),
+              InkWell(
+                onTap: () => _selectStartTime(context),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _startTime == null
+                              ? 'Seleziona orario di inizio'
+                              : '${_startTime!.hour.toString().padLeft(2, '0')}:${_startTime!.minute.toString().padLeft(2, '0')}',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: _startTime == null ? Colors.grey.shade600 : Colors.black87,
+                          ),
+                        ),
+                      ),
+                      const Icon(Icons.access_time, color: Color(0xFF1976D2), size: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // Orario di fine
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Orario di fine:', style: TextStyle(fontSize: 14, color: Colors.grey)),
+              const SizedBox(height: 4),
+              InkWell(
+                onTap: () => _selectEndTime(context),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _endTime == null
+                              ? 'Seleziona orario di fine'
+                              : '${_endTime!.hour.toString().padLeft(2, '0')}:${_endTime!.minute.toString().padLeft(2, '0')}',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: _endTime == null ? Colors.grey.shade600 : Colors.black87,
+                          ),
+                        ),
+                      ),
+                      const Icon(Icons.access_time, color: Color(0xFF1976D2), size: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
   // Funzione per costruire la parte dell'interfaccia per inserire il numero massimo di pazienti
   Widget _buildMaxPatientsField() {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('Numero massimo di pazienti: '),
-            SizedBox(
-              width: 100,
-              child: TextField(
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(hintText: 'Es. 5'),
-                onChanged: (value) {
-                  setState(() {
-                    _maxPatients = int.tryParse(value);
-                  });
-                },
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade200,
+            blurRadius: 8,
+            spreadRadius: 2,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.group, color: Color(0xFF1976D2)),
+              const SizedBox(width: 8),
+              const Text(
+                'Numero massimo di pazienti',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1976D2),
+                ),
               ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              hintText: 'Es. 5',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey.shade300),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF1976D2)),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             ),
-          ],
-        ),
-      ],
+            onChanged: (value) {
+              setState(() {
+                _maxPatients = int.tryParse(value);
+              });
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -221,7 +289,10 @@ class _CalendarPageState extends State<CalendarPage> {
   Future<void> _saveAvailability() async {
     if (_startTime == null || _endTime == null || _maxPatients == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Seleziona un orario di inizio, fine e numero massimo di pazienti')),
+        const SnackBar(
+          content: Text('Seleziona un orario di inizio, fine e numero massimo di pazienti'),
+          backgroundColor: Colors.orange,
+        ),
       );
       return;
     }
@@ -252,11 +323,22 @@ class _CalendarPageState extends State<CalendarPage> {
 
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Disponibilità salvata con successo!')),
+          const SnackBar(
+            content: Text('Disponibilità salvata con successo!'),
+            backgroundColor: Colors.green,
+          ),
         );
 
         // Dopo aver salvato, ricarica la disponibilità aggiornata
         _fetchAvailability(); // Ricarica la disponibilità aggiornata
+
+        // Reset dei campi
+        setState(() {
+          _selectedDays.clear();
+          _startTime = null;
+          _endTime = null;
+          _maxPatients = null;
+        });
 
       } else {
         // Analizza il corpo della risposta per errori specifici
@@ -274,14 +356,163 @@ class _CalendarPageState extends State<CalendarPage> {
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage)),
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } catch (e) {
       print('Errore nella richiesta: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Si è verificato un errore di rete.')),
+        const SnackBar(
+          content: Text('Si è verificato un errore di rete.'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // RIMOSSO Scaffold - ora ritorna direttamente il contenuto
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+
+            // Calendario
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.shade200,
+                    blurRadius: 8,
+                    spreadRadius: 2,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: TableCalendar(
+                firstDay: DateTime.utc(2020, 10, 16),
+                lastDay: DateTime.utc(2030, 10, 16),
+                focusedDay: _focusedDay,
+                eventLoader: (day) {
+                  return _events[_normalizeDate(day)] ?? [];
+                },
+                selectedDayPredicate: (day) => _selectedDays.contains(day),
+                onDaySelected: (selectedDay, focusedDay) {
+                  setState(() {
+                    _selectedDay = selectedDay;
+                    _focusedDay = focusedDay;
+                    _selectedDays.contains(selectedDay) ? _selectedDays.remove(selectedDay) : _selectedDays.add(selectedDay);
+                  });
+                },
+                calendarFormat: _calendarFormat,
+                onFormatChanged: (format) {
+                  setState(() {
+                    _calendarFormat = format;
+                  });
+                },
+                calendarStyle: CalendarStyle(
+                  outsideDaysVisible: false,
+                  selectedDecoration: BoxDecoration(
+                    color: const Color(0xFF1976D2),
+                    shape: BoxShape.circle,
+                  ),
+                  todayDecoration: BoxDecoration(
+                    color: const Color(0xFF1976D2).withOpacity(0.5),
+                    shape: BoxShape.circle,
+                  ),
+                  markerDecoration: BoxDecoration(
+                    color: Colors.orange,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                headerStyle: const HeaderStyle(
+                  formatButtonVisible: true,
+                  titleCentered: true,
+                  formatButtonShowsNext: false,
+                  formatButtonDecoration: BoxDecoration(
+                    color: Color(0xFF1976D2),
+                    borderRadius: BorderRadius.all(Radius.circular(12.0)),
+                  ),
+                  formatButtonTextStyle: TextStyle(
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+
+            _buildTimeSelector(),
+            _buildMaxPatientsField(),
+
+            const SizedBox(height: 20),
+
+            // Bottoni
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _saveAvailability,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1976D2),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.save),
+                        SizedBox(width: 8),
+                        Text('Salva Disponibilità'),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _navigateToBookingPage,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.delete),
+                        SizedBox(width: 8),
+                        Text('Vai alla pagina per cancellare le disponibilità'),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 100), // Spazio per la bottom nav
+          ],
+        ),
+      ),
+    );
   }
 }

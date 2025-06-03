@@ -3,8 +3,7 @@ import 'selection_discovery_page.dart';
 import '../services/api_services.dart';
 import 'calendar_page.dart';
 import 'viewBookings_page.dart';
-import 'viewBookings_page.dart'; // Modifica il nome del file
-import 'viewBookings_patient_page.dart'; // Importa la nuova pagina per il paziente
+import 'viewBookings_patient_page.dart';
 
 class ProfilePage extends StatefulWidget {
   final int userId;
@@ -140,24 +139,45 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
   }
 
   Widget _buildPage() {
-    print("Selected Index: $_selectedIndex");
-    switch (_selectedIndex) {
-      case 0:
-        return _buildProfile(); // Profile page
-      case 1:
-        return SelectionDiscoveryPage(
-          apiService: apiService,
-          userId: widget.userId,
-          token: widget.token,
-          isDoctor: isDoctor,
-        );
-      case 2:
-        return ViewBookingsPatientPage(
-          userId: widget.userId,
-          token: widget.token,
-        );
-      default:
-        return _buildProfile();
+    print("Selected Index: $_selectedIndex, isDoctor: $isDoctor");
+
+    if (isDoctor) {
+      // Navbar per medici: Profilo, Calendario, Prenotazioni
+      switch (_selectedIndex) {
+        case 0:
+          return _buildProfile(); // Profilo
+        case 1:
+          return CalendarPageContent(
+            userId: widget.userId,
+            token: widget.token,
+          ); // Calendario
+        case 2:
+          return ViewBookingsPageContent(
+            token: widget.token,
+          ); // Prenotazioni medico
+        default:
+          return _buildProfile();
+      }
+    } else {
+      // Navbar per pazienti: Profilo, Discovery, Prenotazioni
+      switch (_selectedIndex) {
+        case 0:
+          return _buildProfile(); // Profilo
+        case 1:
+          return SelectionDiscoveryPage(
+            apiService: apiService,
+            userId: widget.userId,
+            token: widget.token,
+            isDoctor: isDoctor,
+          ); // Discovery
+        case 2:
+          return ViewBookingsPatientPage(
+            userId: widget.userId,
+            token: widget.token,
+          ); // Prenotazioni paziente
+        default:
+          return _buildProfile();
+      }
     }
   }
 
@@ -740,6 +760,33 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
     return fields;
   }
 
+  // Metodo per ottenere il titolo dell'AppBar in base alla scheda selezionata
+  String _getAppBarTitle() {
+    if (isDoctor) {
+      switch (_selectedIndex) {
+        case 0:
+          return 'Il Mio Profilo';
+        case 1:
+          return 'Calendario';
+        case 2:
+          return 'Prenotazioni';
+        default:
+          return 'Profilo';
+      }
+    } else {
+      switch (_selectedIndex) {
+        case 0:
+          return 'Il Mio Profilo';
+        case 1:
+          return 'Scopri i Medici';
+        case 2:
+          return 'Le Mie Prenotazioni';
+        default:
+          return 'Profilo';
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -748,11 +795,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
         elevation: 0,
         backgroundColor: Colors.transparent,
         title: Text(
-          _selectedIndex == 0
-              ? 'Il Mio Profilo'
-              : (_selectedIndex == 1
-              ? (isDoctor ? 'Calendario' : 'Scopri i Medici')
-              : 'Le Mie Prenotazioni'),
+          _getAppBarTitle(),
           style: const TextStyle(
             fontWeight: FontWeight.bold,
             color: Colors.white,
@@ -783,6 +826,10 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
           items: isDoctor
               ? const <BottomNavigationBarItem>[
             BottomNavigationBarItem(
+              icon: Icon(Icons.person),
+              label: 'Profilo',
+            ),
+            BottomNavigationBarItem(
               icon: Icon(Icons.calendar_today),
               label: 'Calendario',
             ),
@@ -806,39 +853,98 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
             ),
           ],
           currentIndex: _selectedIndex,
-          onTap: (index) {
-            if (isDoctor) {
-              switch (index) {
-                case 0:
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CalendarPage(
-                        userId: widget.userId,
-                        token: widget.token,
-                      ),
-                    ),
-                  );
-                  break;
-                case 1:
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ViewBookingsPage(
-                        token: widget.token,
-                      ),
-                    ),
-                  );
-                  break;
-              }
-            } else {
-              _onItemTapped(index);
-            }
-          },
+          onTap: _onItemTapped, // Ora usa sempre _onItemTapped per tutti
         ),
       ),
     );
   }
 }
 
+// Widget wrapper per CalendarPage che rimuove Scaffold
+class CalendarPageContent extends StatelessWidget {
+  final int userId;
+  final String token;
 
+  const CalendarPageContent({
+    Key? key,
+    required this.userId,
+    required this.token,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // Usiamo CalendarPage ma con un wrapper che sostituisce Scaffold con Container
+    return CalendarPageWrapper(
+      child: CalendarPage(
+        userId: userId,
+        token: token,
+      ),
+    );
+  }
+}
+
+// Widget wrapper per ViewBookingsPage che rimuove Scaffold
+class ViewBookingsPageContent extends StatelessWidget {
+  final String token;
+
+  const ViewBookingsPageContent({
+    Key? key,
+    required this.token,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // Usiamo ViewBookingsPage ma con un wrapper che sostituisce Scaffold con Container
+    return ViewBookingsPageWrapper(
+      child: ViewBookingsPage(token: token),
+    );
+  }
+}
+
+// Wrapper che sostituisce Scaffold con Container per CalendarPage
+class CalendarPageWrapper extends StatelessWidget {
+  final Widget child;
+
+  const CalendarPageWrapper({Key? key, required this.child}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFFE3F2FD),
+            Colors.white,
+          ],
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
+// Wrapper che sostituisce Scaffold con Container per ViewBookingsPage
+class ViewBookingsPageWrapper extends StatelessWidget {
+  final Widget child;
+
+  const ViewBookingsPageWrapper({Key? key, required this.child}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFFE3F2FD),
+            Colors.white,
+          ],
+        ),
+      ),
+      child: child,
+    );
+  }
+}
