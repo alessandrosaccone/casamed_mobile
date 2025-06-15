@@ -65,6 +65,92 @@ class _ViewBookingsPageState extends State<ViewBookingsPage> {
     }
   }
 
+  Future<void> _deleteBooking(int bookingId) async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Conferma Cancellazione'),
+        content: const Text(
+          'Sei sicuro di voler cancellare questa prenotazione?\n\n'
+              'Nota: Non è possibile cancellare prenotazioni che iniziano entro un\'ora.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annulla'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Cancella'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 20),
+            Text('Cancellazione in corso...'),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final response = await http.delete(
+        Uri.parse('http://10.0.2.2:3000/doctor/bookings/$bookingId'),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      // Close loading dialog
+      Navigator.pop(context);
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200 && data['success']) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                data['refundProcessed'] == true
+                    ? 'Prenotazione cancellata e rimborso processato'
+                    : 'Prenotazione cancellata con successo'
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+        _refreshBookings();
+      } else {
+        throw Exception(data['message'] ?? 'Errore durante la cancellazione');
+      }
+    } catch (e) {
+      // Close loading dialog if still open
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Errore: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
+  }
+
   Future<void> _refreshBookings() async {
     await _fetchBookings();
   }
@@ -250,6 +336,30 @@ class _ViewBookingsPageState extends State<ViewBookingsPage> {
                       ),
                     ),
                   ),
+                // Add delete button for all bookings
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => _deleteBooking(booking['bookingId']),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.delete),
+                        SizedBox(width: 8),
+                        Text('Cancella Prenotazione'),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

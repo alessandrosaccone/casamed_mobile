@@ -4,6 +4,9 @@ import '../services/api_services.dart';
 import 'calendar_page.dart';
 import 'viewBookings_page.dart';
 import 'viewBookings_patient_page.dart';
+import 'notifications_page.dart'; // Add this import
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class ProfilePage extends StatefulWidget {
   final int userId;
@@ -30,6 +33,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
   bool isDoctor = false;
   int userRole = 0; // 0 = paziente, 1 = infermiere, 2 = medico
   int _selectedIndex = 0;
+  int unreadNotificationsCount = 0; // Add this line
 
   // Stati di espansione per le sezioni
   bool _isPersonalInfoExpanded = false;
@@ -71,6 +75,32 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
     super.dispose();
   }
 
+  // Add this method to fetch notifications count
+  Future<void> fetchNotificationsCount() async {
+    const url = 'http://10.0.2.2:3000/notifications/count';
+
+    try {
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${widget.token}',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success']) {
+          setState(() {
+            unreadNotificationsCount = data['unreadCount'] ?? 0;
+          });
+        }
+      }
+    } catch (e) {
+      print('Error fetching notifications count: $e');
+    }
+  }
+
   Future<void> fetchUserProfile() async {
     String token = widget.token;
     int userId = widget.userId;
@@ -89,6 +119,7 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
         _animationController.forward();
 
         await checkIfUserIsDoctor(profileData['userData']['id'], token);
+        await fetchNotificationsCount(); // Add this line
       } catch (e) {
         setState(() {
           message = 'Failed to load user profile: $e';
@@ -352,21 +383,87 @@ class _ProfilePageState extends State<ProfilePage> with TickerProviderStateMixin
       ),
       child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white.withOpacity(0.3),
-                width: 3,
+          // Add notifications button row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const SizedBox(width: 48), // Spacer for balance
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.3),
+                      width: 3,
+                    ),
+                  ),
+                  child: Icon(
+                    _getUserRoleIcon(),
+                    size: 60,
+                    color: Colors.white,
+                  ),
+                ),
               ),
-            ),
-            child: Icon(
-              _getUserRoleIcon(),
-              size: 60,
-              color: Colors.white,
-            ),
+              // Notifications button with badge
+              Stack(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.notifications_outlined,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => NotificationsPage(
+                              token: widget.token,
+                            ),
+                          ),
+                        );
+                        // Refresh notifications count when returning
+                        fetchNotificationsCount();
+                      },
+                    ),
+                  ),
+                  if (unreadNotificationsCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 20,
+                          minHeight: 20,
+                        ),
+                        child: Text(
+                          unreadNotificationsCount > 99
+                              ? '99+'
+                              : unreadNotificationsCount.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
           ),
 
           const SizedBox(height: 16),

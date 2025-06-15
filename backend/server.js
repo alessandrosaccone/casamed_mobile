@@ -13,8 +13,7 @@ const calendarRoutes = require('./calendar'); // Importa le route del calendario
 const roleRoutes = require('./role'); // Importa le route per il controllo del ruolo
 const discoveryRoutes = require('./discovery');
 const paymentsRoutes = require('./payment'); // adatta il path se serve
-
-
+const notificationsRoutes = require('./notifications'); // Add notifications routes
 
 // Middleware
 app.use(express.json());
@@ -28,7 +27,7 @@ app.use('/calendar', calendarRoutes);   // Route per il calendario
 app.use('/', roleRoutes); // Usa le route per il controllo del ruolo
 app.use('/', discoveryRoutes);
 app.use('/payments', paymentsRoutes);
-
+app.use('/', notificationsRoutes.router); // Add notifications routes
 
 // Avvia il server
 app.listen(port, () => {

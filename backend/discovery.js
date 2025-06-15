@@ -2,6 +2,9 @@ const express = require('express');
 const pool = require('./db'); // Connessione al database
 const router = express.Router();
 const authenticateToken = require('./authMiddleware'); // Middleware di autenticazione
+const Stripe = require('stripe');
+const stripe = Stripe('sk_test_51RBewF4IOwwF31fGuJtENyMlKdSCwh6bmWzllqTz9iKuOev3T2jf8ectenKaxOhafDZVBF3pX9Y7Fd7OH2Fh2dUU00fFvvXvmL');
+const { createNotification } = require('./notifications');
 
 // Endpoint protetto per ottenere i medici da users_type_1
 router.get('/discovery', authenticateToken, async (req, res) => {
@@ -323,38 +326,311 @@ router.get('/patient/bookings', authenticateToken, async (req, res) => {
 });
 
 // Endpoint per accettare una prenotazione
-router.put('/bookings/accept/:id', async (req, res) => {
-  const bookingId = req.params.id; // ID della prenotazione da accettare
-  const { note } = req.body;      // Nota con l'orario scelto dal medico
+router.put('/bookings/accept/:id', authenticateToken, async (req, res) => {
+  const bookingId = req.params.id;
+  const { note } = req.body;
+  const doctorId = req.user.id; // Get doctor ID from authenticated user
+
+  const client = await pool.connect();
 
   try {
-      // Recupera la prenotazione e controlla l'esistenza
-      const result = await pool.query(
-          'SELECT accepted_booking FROM bookings WHERE id = $1',
-          [bookingId]
-      );
+    await client.query('BEGIN');
 
-      if (result.rows.length === 0) {
-          return res.status(404).json({ error: 'Prenotazione non trovata.' });
+    // Get booking details first
+    const bookingQuery = await client.query(`
+      SELECT 
+        b.*,
+        p.first_name as patient_first_name,
+        p.last_name as patient_last_name,
+        d.first_name as doctor_first_name,
+        d.last_name as doctor_last_name
+      FROM bookings b
+      JOIN users p ON b.patient_id = p.id
+      JOIN users d ON b.doctor_id = d.id
+      WHERE b.id = $1 AND b.doctor_id = $2
+    `, [bookingId, doctorId]);
+
+    if (bookingQuery.rowCount === 0) {
+      throw new Error('Prenotazione non trovata o non autorizzata.');
+    }
+
+    const booking = bookingQuery.rows[0];
+
+    // Check if booking is already accepted
+    if (booking.accepted_booking) {
+      throw new Error('La prenotazione è già stata accettata.');
+    }
+
+    // Update booking with accepted status and note
+    await client.query(`
+      UPDATE bookings 
+      SET accepted_booking = true, note = $1 
+      WHERE id = $2
+    `, [note, bookingId]);
+
+    // Create notification for patient using the utility function
+    const notificationMessage = `La tua prenotazione del ${new Date(booking.booking_date).toLocaleDateString('it-IT')} alle ${booking.start_time.slice(0, 5)}-${booking.end_time.slice(0, 5)} con il Dr. ${booking.doctor_first_name} ${booking.doctor_last_name} è stata accettata.${note ? ` Nota: ${note}` : ''}`;
+    
+    await createNotification(
+      booking.patient_id,
+      'booking_accepted',
+      'Prenotazione Accettata',
+      notificationMessage,
+      client
+    );
+
+    await client.query('COMMIT');
+
+    res.json({ 
+      success: true, 
+      message: 'Prenotazione accettata con successo.' 
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Errore nell\'accettazione della prenotazione:', err);
+    res.status(400).json({ 
+      success: false, 
+      message: err.message 
+    });
+  } finally {
+    client.release();
+  }
+});
+
+// Doctor delete booking endpoint
+// Doctor delete booking endpoint (with 1-hour rule and refund)
+router.delete('/doctor/bookings/:id', authenticateToken, async (req, res) => {
+  const bookingId = req.params.id;
+  const doctorId = req.user.id;
+  
+  const client = await pool.connect();
+  
+  try {
+    await client.query('BEGIN');
+
+    // Get booking details and verify doctor ownership
+    const bookingQuery = await client.query(`
+      SELECT 
+        b.*,
+        p.first_name as patient_first_name,
+        p.last_name as patient_last_name
+      FROM bookings b
+      JOIN users p ON b.patient_id = p.id
+      WHERE b.id = $1 AND b.doctor_id = $2
+    `, [bookingId, doctorId]);
+
+    if (bookingQuery.rowCount === 0) {
+      throw new Error('Prenotazione non trovata o non autorizzata.');
+    }
+
+    const booking = bookingQuery.rows[0];
+    
+    // Check if booking is within 1 hour (same rule as patients)
+    const bookingDateTime = new Date(`${booking.booking_date}T${booking.start_time}`);
+    const now = new Date();
+    const timeDifference = bookingDateTime.getTime() - now.getTime();
+    const oneHourInMs = 60 * 60 * 1000;
+
+    if (timeDifference <= oneHourInMs && timeDifference > 0) {
+      throw new Error('Non è possibile cancellare la prenotazione. Manca meno di un\'ora all\'appuntamento.');
+    }
+
+    // Process refund if payment was made
+    let refundProcessed = false;
+    if (booking.payment_intent_id) {
+      try {
+        const refund = await stripe.refunds.create({
+          payment_intent: booking.payment_intent_id,
+          reason: 'requested_by_customer'
+        });
+        
+        if (refund.status === 'succeeded' || refund.status === 'pending') {
+          refundProcessed = true;
+          console.log('Refund processed successfully by doctor:', refund.id);
+        } else {
+          throw new Error(`Refund failed with status: ${refund.status}`);
+        }
+      } catch (refundError) {
+        console.error('Refund error:', refundError);
+        throw new Error('Impossibile processare il rimborso. La prenotazione non può essere cancellata. Contatta il supporto.');
       }
+    }
 
-      // Controlla se la prenotazione è già stata accettata
-      if (result.rows[0].accepted_booking) {
-          return res.status(400).json({ error: 'La prenotazione è già stata accettata.' });
+    // Restore availability slot
+    const bookingDate = new Date(booking.booking_date).toISOString().split('T')[0];
+    
+    const existingAvailability = await client.query(`
+      SELECT * FROM availability
+      WHERE user_id = $1 AND available_date = $2 
+      AND start_time = $3 AND end_time = $4
+    `, [booking.doctor_id, bookingDate, booking.start_time, booking.end_time]);
+
+    if (existingAvailability.rowCount > 0) {
+      await client.query(`
+        UPDATE availability
+        SET max_patients = max_patients + 1
+        WHERE user_id = $1 AND available_date = $2 
+        AND start_time = $3 AND end_time = $4
+      `, [booking.doctor_id, bookingDate, booking.start_time, booking.end_time]);
+    } else {
+      await client.query(`
+        INSERT INTO availability (user_id, available_date, start_time, end_time, max_patients)
+        VALUES ($1, $2, $3, $4, 1)
+      `, [booking.doctor_id, bookingDate, booking.start_time, booking.end_time]);
+    }
+
+    // Delete the booking
+    await client.query('DELETE FROM bookings WHERE id = $1', [bookingId]);
+
+    // Notify patient about cancellation
+    const notificationMessage = `La tua prenotazione del ${new Date(booking.booking_date).toLocaleDateString('it-IT')} alle ${booking.start_time.slice(0, 5)}-${booking.end_time.slice(0, 5)} è stata cancellata dal medico.${refundProcessed ? ' Il rimborso è stato processato.' : ''}`;
+    
+    await createNotification(
+      booking.patient_id,
+      'booking_cancelled',
+      'Prenotazione Cancellata dal Medico',
+      notificationMessage,
+      client
+    );
+
+    await client.query('COMMIT');
+
+    res.json({
+      success: true,
+      message: 'Prenotazione cancellata con successo.',
+      refundProcessed: refundProcessed,
+      refundAmount: booking.payment_intent_id ? 'Rimborso processato' : 'Nessun pagamento da rimborsare'
+    });
+
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Errore durante la cancellazione del dottore:', err);
+    res.status(400).json({ 
+      success: false, 
+      message: err.message 
+    });
+  } finally {
+    client.release();
+  }
+});
+
+// Endpoint for deleting a booking with refund and doctor notification
+router.delete('/bookings/delete/:id', authenticateToken, async (req, res) => {
+  const bookingId = req.params.id;
+  const patientId = req.user.id; // Get patient ID from authenticated user
+  
+  const client = await pool.connect();
+  
+  try {
+    await client.query('BEGIN');
+
+    // 1. Get booking details and verify ownership
+    const bookingQuery = await client.query(`
+      SELECT 
+        b.*,
+        u.first_name as doctor_first_name,
+        u.last_name as doctor_last_name,
+        u.email as doctor_email
+      FROM bookings b
+      JOIN users u ON b.doctor_id = u.id
+      WHERE b.id = $1 AND b.patient_id = $2
+    `, [bookingId, patientId]);
+
+    if (bookingQuery.rowCount === 0) {
+      throw new Error('Prenotazione non trovata o non autorizzata.');
+    }
+
+    const booking = bookingQuery.rows[0];
+    
+    // 2. Check if booking is within 1 hour
+    const bookingDateTime = new Date(`${booking.booking_date}T${booking.start_time}`);
+    const now = new Date();
+    const timeDifference = bookingDateTime.getTime() - now.getTime();
+    const oneHourInMs = 60 * 60 * 1000;
+
+    if (timeDifference <= oneHourInMs && timeDifference > 0) {
+      throw new Error('Non è possibile cancellare la prenotazione. Manca meno di un\'ora all\'appuntamento.');
+    }
+
+    // 3. Process refund if payment was made
+    let refundProcessed = false;
+    if (booking.payment_intent_id) {
+      try {
+        const refund = await stripe.refunds.create({
+          payment_intent: booking.payment_intent_id,
+          reason: 'requested_by_customer'
+        });
+        
+        if (refund.status === 'succeeded' || refund.status === 'pending') {
+          refundProcessed = true;
+          console.log('Refund processed successfully:', refund.id);
+        } else {
+          throw new Error(`Refund failed with status: ${refund.status}`);
+        }
+      } catch (refundError) {
+        console.error('Refund error:', refundError);
+        throw new Error('Impossibile processare il rimborso. La prenotazione non può essere cancellata. Contatta il supporto.');
       }
+    }
 
-      // Aggiorna la prenotazione con `accepted_booking` e `note`
-      await pool.query(
-          `UPDATE bookings 
-           SET accepted_booking = true, note = $1 
-           WHERE id = $2`,
-          [note, bookingId]
-      );
+    // 4. Restore availability slot
+    const bookingDate = new Date(booking.booking_date).toISOString().split('T')[0];
+    
+    // Check if availability slot exists
+    const existingAvailability = await client.query(`
+      SELECT * FROM availability
+      WHERE user_id = $1 AND available_date = $2 
+      AND start_time = $3 AND end_time = $4
+    `, [booking.doctor_id, bookingDate, booking.start_time, booking.end_time]);
 
-      res.status(200).json({ message: 'Prenotazione accettata con successo.' });
-  } catch (error) {
-      console.error('Errore nell\'accettazione della prenotazione:', error);
-      res.status(500).json({ error: 'Errore del server.' });
+    if (existingAvailability.rowCount > 0) {
+      // Increment max_patients
+      await client.query(`
+        UPDATE availability
+        SET max_patients = max_patients + 1
+        WHERE user_id = $1 AND available_date = $2 
+        AND start_time = $3 AND end_time = $4
+      `, [booking.doctor_id, bookingDate, booking.start_time, booking.end_time]);
+    } else {
+      // Create new availability slot
+      await client.query(`
+        INSERT INTO availability (user_id, available_date, start_time, end_time, max_patients)
+        VALUES ($1, $2, $3, $4, 1)
+      `, [booking.doctor_id, bookingDate, booking.start_time, booking.end_time]);
+    }
+
+    // 5. Delete the booking
+    await client.query('DELETE FROM bookings WHERE id = $1', [bookingId]);
+
+    // 6. Create notification for doctor using the utility function
+    const notificationMessage = `La prenotazione del ${new Date(booking.booking_date).toLocaleDateString('it-IT')} alle ${booking.start_time.slice(0, 5)}-${booking.end_time.slice(0, 5)} è stata cancellata dal paziente.`;
+    
+    await createNotification(
+      booking.doctor_id,
+      'booking_cancelled',
+      'Prenotazione Cancellata',
+      notificationMessage,
+      client
+    );
+
+    await client.query('COMMIT');
+
+    res.json({
+      success: true,
+      message: 'Prenotazione cancellata con successo.',
+      refundProcessed: refundProcessed,
+      refundAmount: booking.payment_intent_id ? 'Importo rimborsato' : 'Nessun pagamento da rimborsare'
+    });
+
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Errore durante la cancellazione della prenotazione:', err);
+    res.status(400).json({ 
+      success: false, 
+      message: err.message 
+    });
+  } finally {
+    client.release();
   }
 });
 
