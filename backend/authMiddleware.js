@@ -18,6 +18,7 @@ function authenticateToken(req, res, next) {
     
     // Il token è valido, aggiungi i dati dell'utente alla richiesta
     req.user = user;
+    req.token = token; // ← AGGIUNGI QUESTA RIGA
     next();  // Passa al prossimo middleware o alla route handler
   });
 }

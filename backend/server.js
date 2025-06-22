@@ -14,6 +14,7 @@ const roleRoutes = require('./role'); // Importa le route per il controllo del r
 const discoveryRoutes = require('./discovery');
 const paymentsRoutes = require('./payment'); // adatta il path se serve
 const notificationsRoutes = require('./notifications'); // Add notifications routes
+const logoutRoutes = require('./logout'); // ← AGGIUNGI QUESTA RIGA
 
 // Middleware
 app.use(express.json());
@@ -28,6 +29,7 @@ app.use('/', roleRoutes); // Usa le route per il controllo del ruolo
 app.use('/', discoveryRoutes);
 app.use('/payments', paymentsRoutes);
 app.use('/', notificationsRoutes.router); // Add notifications routes
+app.use('/auth', logoutRoutes); // ← AGGIUNGI QUESTA RIGA
 
 // Avvia il server
 app.listen(port, () => {
